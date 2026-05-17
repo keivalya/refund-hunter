@@ -5,8 +5,6 @@ DEMO NOTE: This list is hand-curated for demo variety, not extracted from
 a real Gmail inbox. The OAuth flow is real (judge sees the consent screen),
 but the "scan" returns this static list. The next iteration would call
 Gmail API + Claude Sonnet for real inbox classification.
-
-Total annual recoverable: $2,374.92
 """
 
 SUBSCRIPTIONS = [
@@ -21,18 +19,6 @@ SUBSCRIPTIONS = [
         "status": "ready",
         "difficulty": "dark_pattern",
         "notes": "Dark-pattern cancellation flow with early termination fee.",
-    },
-    {
-        "id": "sub_la_fitness",
-        "merchant": "LA Fitness",
-        "plan": "Signature Membership",
-        "monthly_cost": 49.99,
-        "annual_recoverable": 599.88,
-        "channel": "email",
-        "last_used_days_ago": 198,
-        "status": "ready",
-        "difficulty": "email_only",
-        "notes": "Certified-mail-or-email cancellation policy.",
     },
     {
         "id": "sub_nyt",

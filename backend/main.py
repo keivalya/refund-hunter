@@ -2,12 +2,15 @@
 Refund Hunter — FastAPI backend
 
 Endpoints:
-  GET  /api/auth/gmail/start        — start Gmail OAuth flow
-  GET  /api/auth/gmail/callback     — handle OAuth callback
-  GET  /api/subscriptions           — return curated subscription list
-  POST /api/calls                   — start a cancellation call
-  GET  /api/calls/{id}              — get call status + transcript
-  GET  /api/calls/{id}/stream       — SSE proxy for live transcript
+  GET  /api/auth/gmail/start            — start Gmail OAuth flow
+  GET  /api/auth/gmail/callback         — handle OAuth callback
+  GET  /api/subscriptions               — return curated subscription list
+  POST /api/calls                       — start a cancellation call
+  GET  /api/calls/{id}                  — get call status + transcript
+  GET  /api/calls/{id}/stream           — SSE proxy for live transcript
+  POST /api/browser/start               — start a Browser Use session
+  GET  /api/browser/{session_id}        — get session state
+  GET  /api/browser/{session_id}/stream — SSE: Browser Use run events
 """
 
 import asyncio
@@ -20,7 +23,18 @@ from pydantic import BaseModel
 from sse_starlette.sse import EventSourceResponse
 from dotenv import load_dotenv
 
-from agents.voice import start_call, get_call, stream_transcript
+from agents.voice import (
+    start_call,
+    get_call,
+    stream_transcript,
+    extract_confirmation_number,
+)
+from agents.browser import (
+    start_nyt_cancellation,
+    stream_session_events,
+    get_session_state,
+    cleanup_orphan_sessions,
+)
 from merchants.planet_fitness import SYSTEM_PROMPT, INITIAL_GREETING, CASE_DATA
 from auth.gmail_oauth import create_auth_url, exchange_code
 from auth.token_store import save_tokens, is_connected
@@ -50,6 +64,10 @@ class CallResponse(BaseModel):
     status: str
     from_number: str
     to_number: str
+
+
+class BrowserStartRequest(BaseModel):
+    case_id: str  # Currently only "sub_nyt" supported
 
 
 # ── Gmail OAuth ─────────────────────────────────────────────────────
@@ -145,9 +163,13 @@ async def create_call(req: CallRequest):
 
 @app.get("/api/calls/{call_id}")
 async def get_call_status(call_id: str):
-    """Get call status and full transcript."""
+    """Get call status + transcript, augmented with extracted confirmation number."""
     try:
-        return await get_call(call_id)
+        call = await get_call(call_id)
+        call["confirmation_number"] = extract_confirmation_number(
+            call.get("transcripts") or []
+        )
+        return call
     except Exception as e:
         raise HTTPException(status_code=502, detail=f"AgentPhone error: {e}")
 
@@ -172,6 +194,84 @@ async def stream_call_transcript(call_id: str):
                     pass
                 else:
                     yield {"data": line}
+        except Exception as e:
+            yield {"event": "error", "data": json.dumps({"error": str(e)})}
+
+    return EventSourceResponse(event_generator())
+
+
+# ── Browser Use ─────────────────────────────────────────────────────
+
+@app.on_event("startup")
+async def cleanup_on_startup():
+    """Delete leftover 'error' Browser Use sessions from previous runs."""
+    try:
+        result = await cleanup_orphan_sessions(aggressive=False)
+        print(f"[startup] Browser Use cleanup: {result}")
+    except Exception as e:
+        print(f"[startup] Browser Use cleanup skipped: {e}")
+
+
+@app.post("/api/browser/cleanup")
+async def browser_cleanup(aggressive: bool = False):
+    """
+    Manual cleanup endpoint.
+    - aggressive=false (default): deletes only 'error' sessions
+    - aggressive=true: also deletes 'stopped' sessions
+    Never touches sessions tracked by this process or in active/running state.
+    """
+    return await cleanup_orphan_sessions(aggressive=aggressive)
+
+
+@app.post("/api/browser/start")
+async def browser_start(req: BrowserStartRequest):
+    """
+    Start a Browser Use session for a case. Currently only sub_nyt is wired.
+
+    Returns the session id and live_url. The frontend should iframe live_url
+    and subscribe to /api/browser/{session_id}/stream for step events.
+    """
+    if req.case_id != "sub_nyt":
+        raise HTTPException(
+            status_code=400,
+            detail=f"Browser lane only wired for sub_nyt, got {req.case_id}",
+        )
+    try:
+        state = await start_nyt_cancellation(req.case_id)
+        return {
+            "session_id": state["session_id"],
+            "live_url": state["live_url"],
+            "status": state["status"],
+        }
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=f"Browser Use error: {e}")
+
+
+@app.get("/api/browser/{session_id}")
+async def browser_status(session_id: str):
+    """Return the cached state for a Browser Use session."""
+    state = get_session_state(session_id)
+    if not state:
+        raise HTTPException(status_code=404, detail="Session not found")
+    return state
+
+
+@app.get("/api/browser/{session_id}/stream")
+async def browser_stream(session_id: str):
+    """
+    SSE — stream events from the Browser Use run.
+
+    Events emitted:
+      - connected: {session_id, live_url}
+      - step: {step_index, role, msg_type, summary, screenshot_url?}
+      - ended: {status, output}
+    """
+    async def event_generator():
+        try:
+            async for event in stream_session_events(session_id):
+                yield {"data": json.dumps(event)}
+        except ValueError as e:
+            yield {"event": "error", "data": json.dumps({"error": str(e)})}
         except Exception as e:
             yield {"event": "error", "data": json.dumps({"error": str(e)})}
 

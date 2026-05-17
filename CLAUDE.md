@@ -13,14 +13,27 @@ call, click, or email on your behalf."
 Live phone call to Planet Fitness via AgentPhone, transcript streaming on 
 screen, retention objection handled, cancellation confirmed.
 
-## Tier discipline (read this every time)
-- Tier 0 (DONE): Voice agent dials, transcript streams, confirmation captured.
-- Tier 1 (DONE): Gmail OAuth + curated scan + dashboard with 6 subscriptions.
-- Tier 1.5 (CURRENT): Real Browser Use lane for NYT + three-lane execute view.
-- Tier 2: Supermemory case state, audit log, Stripe payout stub.
-- Tier 3 (NEVER): Refund recovery, multi-user, mobile, settings, command palette.
+## Tier status (updated)
+- Tier 0: DONE — voice call, transcript SSE
+- Tier 1: DONE — Gmail OAuth, dashboard, curated subs
+- Tier 1.5: DONE — three-lane execute, real Browser Use for NYT
+- Tier 2a: NEXT — AgentMail for real email lane (LA Fitness)
+- Tier 2b: NEXT — Supermemory for persistent merchant playbooks
+- Tier 2c: NEXT — Moss for in-call real-time retrieval (HIGHEST RISK)
+- Tier 3: After 2a/2b/2c — polish, audit log, pitch deck
 
-If asked to build something not on the tier list above, push back.
+## Memory architecture (when 2b + 2c ship)
+- Supermemory: persistent merchant knowledge. Written after each call.
+  Synthesized into a per-merchant playbook. Queried before each call.
+- Moss: in-call hot path. Loaded with playbook at call start. Queried on
+  every rep turn with their last utterance. Returns <100ms.
+- Clear handoff: Supermemory writes a curated playbook into Moss at
+  call start. Moss serves it during the call. Supermemory ingests the
+  transcript after.
+
+## Demo merchants — channel reality check
+- Planet Fitness (voice): REAL via AgentPhone
+- NYT (browser): REAL via Browser Use
 
 ## Stack (locked)
 **Frontend:** Next.js 15 App Router · Tailwind · shadcn/ui · Framer Motion · 
@@ -42,7 +55,6 @@ AgentPhone (voice) · Browser Use Cloud SDK (browser) · Google Gmail OAuth.
 - SiriusXM — voice — wired but disabled in demo
 - NYT — browser — real cancel-flow navigation via Browser Use — REAL
 - Adobe Creative Cloud — browser — wired but disabled in demo  
-- LA Fitness — email — visually mocked, honest comment in code
 - Audible — browser — wired but disabled in demo
 
 ## Rules of engagement for Claude Code

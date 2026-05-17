@@ -1,12 +1,17 @@
 "use client";
 
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 import { useState, useEffect, useCallback, Suspense } from "react";
 import { motion } from "framer-motion";
+import { Zap } from "lucide-react";
 import { TopNav } from "@/components/top-nav";
 import { ScanAnimation } from "@/components/scan-animation";
 import { SubscriptionRow } from "@/components/subscription-row";
 import { getSubscriptions } from "@/lib/api";
+
+// Merchants currently wired to real execute lanes.
+// Keep in sync with WIRED_ROUTES in subscription-row.tsx.
+const ACTIVE_DEMO_CASES = ["sub_planet_fitness", "sub_nyt"];
 
 interface Subscription {
   id: string;
@@ -23,6 +28,7 @@ interface Subscription {
 
 function DashboardContent() {
   const searchParams = useSearchParams();
+  const router = useRouter();
   const justConnected = searchParams.get("connected") === "true";
 
   const [scanning, setScanning] = useState(justConnected);
@@ -92,21 +98,35 @@ function DashboardContent() {
               transition={{ duration: 0.4 }}
             >
               {/* Header */}
-              <div className="mb-6">
-                <p className="text-[13px] text-muted-foreground mb-1">
-                  Found {subscriptions.length} active subscriptions
-                </p>
-                <div className="flex items-baseline gap-1">
-                  <span className="text-muted-foreground text-3xl font-semibold">
-                    $
-                  </span>
-                  <span className="text-4xl font-semibold tracking-tight">
-                    {totalRecoverable.toFixed(2)}
-                  </span>
-                  <span className="text-[15px] text-muted-foreground ml-1">
-                    recoverable per year
-                  </span>
+              <div className="mb-6 flex items-end justify-between gap-4 flex-wrap">
+                <div>
+                  <p className="text-[13px] text-muted-foreground mb-1">
+                    Found {subscriptions.length} active subscriptions
+                  </p>
+                  <div className="flex items-baseline gap-1">
+                    <span className="text-muted-foreground text-3xl font-semibold">
+                      $
+                    </span>
+                    <span className="text-4xl font-semibold tracking-tight">
+                      {totalRecoverable.toFixed(2)}
+                    </span>
+                    <span className="text-[15px] text-muted-foreground ml-1">
+                      recoverable per year
+                    </span>
+                  </div>
                 </div>
+
+                <button
+                  onClick={() =>
+                    router.push(
+                      `/execute?cases=${ACTIVE_DEMO_CASES.join(",")}`
+                    )
+                  }
+                  className="inline-flex items-center gap-2 px-4 py-2.5 rounded-md text-[14px] font-semibold bg-accent text-accent-foreground hover:opacity-90 transition-opacity"
+                >
+                  <Zap size={16} />
+                  <span>Approve all {ACTIVE_DEMO_CASES.length} active demos</span>
+                </button>
               </div>
 
               {/* List */}

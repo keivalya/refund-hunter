@@ -30,16 +30,29 @@ const DIFFICULTY_LABELS: Record<string, string> = {
   easy: "easy",
 };
 
+const DISABLED_COPY: Record<string, string> = {
+  phone: "Voice integration shipping in v1.1",
+  browser: "Browser integration in progress",
+  email: "Email integration in progress",
+};
+
+// Merchants whose buttons are wired to real execute lanes.
+// Add a sub here and define its route to enable it on the dashboard.
+const WIRED_ROUTES: Record<string, string> = {
+  sub_planet_fitness: "/execute/sub_planet_fitness",
+  sub_nyt: "/execute?cases=sub_nyt",
+};
+
 export function SubscriptionRow({ sub }: { sub: Subscription }) {
   const router = useRouter();
   const [toast, setToast] = useState(false);
 
   const Icon = CHANNEL_ICONS[sub.channel] || Globe;
-  const isPlanetFitness = sub.id === "sub_planet_fitness";
+  const wiredRoute = WIRED_ROUTES[sub.id];
 
   const handleAction = () => {
-    if (isPlanetFitness) {
-      router.push(`/execute/${sub.id}`);
+    if (wiredRoute) {
+      router.push(wiredRoute);
     } else {
       setToast(true);
       setTimeout(() => setToast(false), 2500);
@@ -76,7 +89,7 @@ export function SubscriptionRow({ sub }: { sub: Subscription }) {
           </span>
           <span className="text-[13px] text-muted-foreground">&middot;</span>
           <span className="text-[13px] text-muted-foreground">
-            last used {sub.last_used_days_ago} days ago
+            ${sub.monthly_cost.toFixed(2)}/month
           </span>
         </div>
         <div className="flex items-center gap-1.5 mt-1.5">
@@ -116,7 +129,7 @@ export function SubscriptionRow({ sub }: { sub: Subscription }) {
 
           {toast && (
             <div className="absolute right-0 top-full mt-2 w-56 rounded-md border border-border bg-[var(--surface)] px-3 py-2 text-[12px] text-muted-foreground z-50">
-              Voice channel only in this demo — try Planet Fitness.
+              {DISABLED_COPY[sub.channel] || "Coming soon"}
             </div>
           )}
         </div>

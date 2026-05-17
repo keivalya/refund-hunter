@@ -11,9 +11,43 @@ Key endpoints used:
 """
 
 import os
+import re
 import httpx
 
 AGENTPHONE_BASE = "https://api.agentphone.ai"
+
+# Regex patterns ordered from most specific to least. First match wins.
+_CONFIRMATION_PATTERNS = [
+    re.compile(
+        r"confirmation\s+(?:number|#|code)\s*(?:is\s+)?[:\-]?\s*([A-Z0-9][A-Z0-9\-]{4,})",
+        re.IGNORECASE,
+    ),
+    re.compile(
+        r"reference\s+(?:number|#|code)\s*(?:is\s+)?[:\-]?\s*([A-Z0-9][A-Z0-9\-]{4,})",
+        re.IGNORECASE,
+    ),
+    re.compile(
+        r"cancellation\s+(?:number|#)\s*(?:is\s+)?[:\-]?\s*([A-Z0-9][A-Z0-9\-]{4,})",
+        re.IGNORECASE,
+    ),
+]
+
+
+def extract_confirmation_number(transcripts: list[dict]) -> str | None:
+    """Scan transcript turns for a confirmation number using regex patterns."""
+    text_parts: list[str] = []
+    for turn in transcripts:
+        if turn.get("transcript"):
+            text_parts.append(turn["transcript"])
+        if turn.get("response"):
+            text_parts.append(turn["response"])
+    full_text = " ".join(text_parts)
+
+    for pattern in _CONFIRMATION_PATTERNS:
+        match = pattern.search(full_text)
+        if match:
+            return match.group(1).upper()
+    return None
 
 
 def _headers() -> dict:

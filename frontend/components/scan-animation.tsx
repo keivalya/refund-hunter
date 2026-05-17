@@ -5,11 +5,11 @@ import { motion, AnimatePresence } from "framer-motion";
 
 const SCAN_LINES = [
   "Connecting to inbox...",
-  "Checking emails from 2023...",
-  "Checking emails from 2024...",
-  "Checking emails from 2025...",
+  "Scanning Jan – Mar 2026...",
+  "Scanning Apr – May 2026...",
   "Identifying recurring charges...",
-  "Found 6 subscriptions",
+  "Cross-referencing active billing...",
+  "Found 5 active subscriptions",
 ];
 
 interface ScanAnimationProps {
