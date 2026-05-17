@@ -16,19 +16,24 @@ screen, retention objection handled, cancellation confirmed.
 ## Tier status (updated)
 - Tier 0: DONE — voice call, transcript SSE
 - Tier 1: DONE — Gmail OAuth, dashboard, curated subs
-- Tier 1.5: DONE — three-lane execute, real Browser Use for NYT
-- Tier 2a: NEXT — AgentMail for real email lane (LA Fitness)
+- Tier 1.5: DONE — three-lane execute (voice/browser/email), real Browser Use for NYT
+- Tier 2a: NEXT — AgentMail replaces email lane mock
 - Tier 2b: NEXT — Supermemory for persistent merchant playbooks
 - Tier 2c: NEXT — Moss for in-call real-time retrieval (HIGHEST RISK)
 - Tier 3: After 2a/2b/2c — polish, audit log, pitch deck
 
+## Current channel reality
+- Planet Fitness (voice): REAL via AgentPhone
+- NYT (browser): REAL via Browser Use, stops at chat-handoff
+- LA Fitness (email): MOCKED (60s scripted setTimeout) — Tier 2a replaces this
+
 ## Memory architecture (when 2b + 2c ship)
-- Supermemory: persistent merchant knowledge. Written after each call.
-  Synthesized into a per-merchant playbook. Queried before each call.
-- Moss: in-call hot path. Loaded with playbook at call start. Queried on
-  every rep turn with their last utterance. Returns <100ms.
-- Clear handoff: Supermemory writes a curated playbook into Moss at
-  call start. Moss serves it during the call. Supermemory ingests the
+- Supermemory: persistent merchant knowledge. Written after calls.
+  Synthesized into per-merchant playbooks. Queried before calls.
+- Moss: in-call hot path. Loaded with playbook at call start. Queried
+  on every rep turn. Returns <100ms.
+- Handoff: Supermemory writes a curated playbook into Moss at call
+  start. Moss serves it during the call. Supermemory ingests the
   transcript after.
 
 ## Demo merchants — channel reality check

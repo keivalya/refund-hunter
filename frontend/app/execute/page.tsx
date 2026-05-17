@@ -19,10 +19,11 @@ import { ChevronLeft } from "lucide-react";
 import { TopNav } from "@/components/top-nav";
 import { CallPanel } from "@/components/call-panel";
 import { BrowserLane } from "@/components/execute/browser-lane";
+import { EmailLane } from "@/components/execute/email-lane";
 
 interface CaseConfig {
   caseId: string;
-  channel: "voice" | "browser";
+  channel: "voice" | "browser" | "email";
   merchant: string;
 }
 
@@ -36,6 +37,11 @@ const CASE_REGISTRY: Record<string, CaseConfig> = {
     caseId: "sub_nyt",
     channel: "browser",
     merchant: "New York Times",
+  },
+  sub_la_fitness: {
+    caseId: "sub_la_fitness",
+    channel: "email",
+    merchant: "LA Fitness",
   },
 };
 
@@ -116,6 +122,9 @@ function LaneFor({ config }: { config: CaseConfig }) {
   }
   if (config.channel === "browser") {
     return <BrowserLane caseId={config.caseId} merchantName={config.merchant} />;
+  }
+  if (config.channel === "email") {
+    return <EmailLane caseId={config.caseId} merchantName={config.merchant} />;
   }
   return null;
 }

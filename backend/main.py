@@ -11,6 +11,8 @@ Endpoints:
   POST /api/browser/start               — start a Browser Use session
   GET  /api/browser/{session_id}        — get session state
   GET  /api/browser/{session_id}/stream — SSE: Browser Use run events
+  POST /api/email/start                 — send a cancellation email
+  GET  /api/email/{thread_id}           — get thread state
 """
 
 import asyncio
@@ -35,6 +37,13 @@ from agents.browser import (
     get_session_state,
     cleanup_orphan_sessions,
 )
+from agents.email import (
+    provision_inboxes,
+    send_cancellation_email,
+    get_thread_state,
+    stream_thread_events,
+)
+from agents import merchant_inbox
 from merchants.planet_fitness import SYSTEM_PROMPT, INITIAL_GREETING, CASE_DATA
 from auth.gmail_oauth import create_auth_url, exchange_code
 from auth.token_store import save_tokens, is_connected
@@ -68,6 +77,10 @@ class CallResponse(BaseModel):
 
 class BrowserStartRequest(BaseModel):
     case_id: str  # Currently only "sub_nyt" supported
+
+
+class EmailStartRequest(BaseModel):
+    case_id: str  # Currently only "sub_la_fitness" supported
 
 
 # ── Gmail OAuth ─────────────────────────────────────────────────────
@@ -212,6 +225,36 @@ async def cleanup_on_startup():
         print(f"[startup] Browser Use cleanup skipped: {e}")
 
 
+@app.on_event("startup")
+async def provision_email_inboxes_on_startup():
+    """Idempotent provisioning of agent + merchant AgentMail inboxes."""
+    try:
+        result = provision_inboxes()
+        print(f"[startup] AgentMail inboxes provisioned: {result}")
+    except Exception as e:
+        print(f"[startup] AgentMail provisioning skipped: {e}")
+
+
+@app.on_event("startup")
+async def start_merchant_auto_responder():
+    """
+    DEMO-ONLY: spawn the merchant inbox auto-responder background task.
+    In production this hook would be deleted along with merchant_inbox.py.
+    """
+    try:
+        await merchant_inbox.start()
+    except Exception as e:
+        print(f"[startup] merchant auto-responder failed to start: {e}")
+
+
+@app.on_event("shutdown")
+async def stop_merchant_auto_responder():
+    try:
+        await merchant_inbox.stop()
+    except Exception as e:
+        print(f"[shutdown] merchant auto-responder stop error: {e}")
+
+
 @app.post("/api/browser/cleanup")
 async def browser_cleanup(aggressive: bool = False):
     """
@@ -272,6 +315,56 @@ async def browser_stream(session_id: str):
                 yield {"data": json.dumps(event)}
         except ValueError as e:
             yield {"event": "error", "data": json.dumps({"error": str(e)})}
+        except Exception as e:
+            yield {"event": "error", "data": json.dumps({"error": str(e)})}
+
+    return EventSourceResponse(event_generator())
+
+
+# ── Email (AgentMail) ───────────────────────────────────────────────
+
+@app.post("/api/email/start")
+async def email_start(req: EmailStartRequest):
+    """
+    Send a cancellation email from the agent inbox to the merchant inbox.
+
+    Currently only sub_la_fitness is wired. Returns thread state with
+    sent message preview.
+    """
+    try:
+        state = send_cancellation_email(req.case_id)
+        return state
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=f"AgentMail error: {e}")
+
+
+@app.get("/api/email/{thread_id}")
+async def email_thread_state(thread_id: str):
+    """Return cached thread state for a sent email."""
+    state = get_thread_state(thread_id)
+    if not state:
+        raise HTTPException(status_code=404, detail="Thread not found")
+    return state
+
+
+@app.get("/api/email/{thread_id}/stream")
+async def email_thread_stream(thread_id: str):
+    """
+    SSE — stream events for the email thread lifecycle.
+
+    Events:
+      - sent       (initial; outbound message preview)
+      - polling    (heartbeat while waiting for reply)
+      - received   (reply landed; inbound message preview)
+      - confirmed  (confirmation number extracted from reply body)
+      - timeout    (no reply within STREAM_TIMEOUT_SEC)
+    """
+    async def event_generator():
+        try:
+            async for event in stream_thread_events(thread_id):
+                yield {"data": json.dumps(event)}
         except Exception as e:
             yield {"event": "error", "data": json.dumps({"error": str(e)})}
 

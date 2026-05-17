@@ -11,7 +11,7 @@ import { getSubscriptions } from "@/lib/api";
 
 // Merchants currently wired to real execute lanes.
 // Keep in sync with WIRED_ROUTES in subscription-row.tsx.
-const ACTIVE_DEMO_CASES = ["sub_planet_fitness", "sub_nyt"];
+const ACTIVE_DEMO_CASES = ["sub_planet_fitness", "sub_nyt", "sub_la_fitness"];
 
 interface Subscription {
   id: string;

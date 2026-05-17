@@ -21,6 +21,18 @@ SUBSCRIPTIONS = [
         "notes": "Dark-pattern cancellation flow with early termination fee.",
     },
     {
+        "id": "sub_la_fitness",
+        "merchant": "LA Fitness",
+        "plan": "Signature Membership",
+        "monthly_cost": 49.99,
+        "annual_recoverable": 599.88,
+        "channel": "email",
+        "last_used_days_ago": 198,
+        "status": "ready",
+        "difficulty": "email_only",
+        "notes": "Certified-mail-or-email cancellation policy.",
+    },
+    {
         "id": "sub_nyt",
         "merchant": "New York Times",
         "plan": "All Access Digital",

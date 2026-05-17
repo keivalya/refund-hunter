@@ -9,7 +9,7 @@ const SCAN_LINES = [
   "Scanning Apr – May 2026...",
   "Identifying recurring charges...",
   "Cross-referencing active billing...",
-  "Found 5 active subscriptions",
+  "Found 6 active subscriptions",
 ];
 
 interface ScanAnimationProps {

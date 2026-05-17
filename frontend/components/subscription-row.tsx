@@ -41,6 +41,7 @@ const DISABLED_COPY: Record<string, string> = {
 const WIRED_ROUTES: Record<string, string> = {
   sub_planet_fitness: "/execute/sub_planet_fitness",
   sub_nyt: "/execute?cases=sub_nyt",
+  sub_la_fitness: "/execute?cases=sub_la_fitness",
 };
 
 export function SubscriptionRow({ sub }: { sub: Subscription }) {
