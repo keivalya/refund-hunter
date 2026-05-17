@@ -13,6 +13,9 @@ Endpoints:
   GET  /api/browser/{session_id}/stream — SSE: Browser Use run events
   POST /api/email/start                 — send a cancellation email
   GET  /api/email/{thread_id}           — get thread state
+  GET  /api/email/{thread_id}/stream    — SSE: email lifecycle events
+  GET  /api/insights                    — playbooks for all demo merchants
+  GET  /api/insights/{merchant_id}      — playbook for a single merchant
 """
 
 import asyncio
@@ -44,6 +47,77 @@ from agents.email import (
     stream_thread_events,
 )
 from agents import merchant_inbox
+from agents.memory import (
+    get_merchant_playbook,
+    render_playbook_section,
+    seed_memories_if_missing,
+    write_memory,
+    extract_retention_from_transcript,
+)
+from data.memory_seeds import ALL_SEEDS
+
+# Track call IDs we've already ingested into Supermemory (avoid duplicates
+# when /api/calls/{id} is polled multiple times after completion).
+_ingested_voice_call_ids: set[str] = set()
+
+
+async def _ingest_voice_call_if_new(call: dict) -> None:
+    """Write a Supermemory entry for a completed voice call. Idempotent."""
+    import asyncio
+    call_id = str(call.get("id") or "")
+    if not call_id or call_id in _ingested_voice_call_ids:
+        return
+    _ingested_voice_call_ids.add(call_id)
+
+    transcripts = call.get("transcripts") or []
+    full_text = " ".join(
+        (t.get("response") or "") + " " + (t.get("transcript") or "")
+        for t in transcripts
+    )
+    retention = extract_retention_from_transcript(full_text)
+    confirmation = call.get("confirmation_number")
+    duration = call.get("durationSeconds")
+    ended_at = call.get("endedAt")
+
+    summary_parts = [f"Cancellation call to Planet Fitness."]
+    if duration:
+        summary_parts.append(f"Duration {duration}s.")
+    if retention:
+        summary_parts.append(f"Retention offered (extracted from transcript): {retention}.")
+    else:
+        summary_parts.append("No explicit retention offer detected in transcript.")
+    if confirmation:
+        summary_parts.append(f"Confirmation number captured: {confirmation}.")
+    else:
+        summary_parts.append("Confirmation number not captured verbally.")
+    content = " ".join(summary_parts)
+
+    metadata: dict = {
+        "channel": "voice",
+        "outcome": "cancelled" if confirmation else "completed_no_confirmation",
+        "duration_seconds": duration,
+        "timestamp": ended_at,
+        "seed": False,
+        "call_id": call_id,
+    }
+    if retention:
+        metadata["retention_offered"] = retention
+    if confirmation:
+        metadata["confirmation_number"] = confirmation
+
+    try:
+        await asyncio.to_thread(
+            write_memory,
+            merchant_id="planet_fitness",
+            content=content,
+            metadata=metadata,
+            custom_id=f"call_{call_id}",
+        )
+        print(f"[memory] ingested voice call {call_id} retention={retention}", flush=True)
+    except Exception as e:
+        # Don't fail the API request if memory write fails.
+        print(f"[memory] voice ingest failed for {call_id}: {e}", flush=True)
+        _ingested_voice_call_ids.discard(call_id)
 from merchants.planet_fitness import SYSTEM_PROMPT, INITIAL_GREETING, CASE_DATA
 from auth.gmail_oauth import create_auth_url, exchange_code
 from auth.token_store import save_tokens, is_connected
@@ -155,13 +229,26 @@ async def create_call(req: CallRequest):
     """
     Initiate a cancellation call via AgentPhone.
 
-    The agent uses hosted mode — AgentPhone's built-in LLM drives the
-    conversation using our Planet Fitness system prompt.
+    Tier 2b: the system prompt is dynamically enriched with patterns from
+    prior Planet Fitness calls (via Supermemory). Failure to enrich falls
+    back to the hardcoded prompt — voice flow never breaks.
     """
+    # Pull merchant playbook from Supermemory and append to system prompt.
+    # render_playbook_section returns "" if no memories or any error, so
+    # this can never fail the voice call.
+    try:
+        playbook = get_merchant_playbook("planet_fitness")
+        enrichment = render_playbook_section(playbook)
+    except Exception as e:
+        print(f"[main] playbook enrichment skipped: {e}", flush=True)
+        enrichment = ""
+
+    enriched_prompt = SYSTEM_PROMPT + enrichment
+
     try:
         result = await start_call(
             to_number=req.phone_number,
-            system_prompt=SYSTEM_PROMPT,
+            system_prompt=enriched_prompt,
             initial_greeting=INITIAL_GREETING,
         )
         return CallResponse(
@@ -182,6 +269,10 @@ async def get_call_status(call_id: str):
         call["confirmation_number"] = extract_confirmation_number(
             call.get("transcripts") or []
         )
+        # Tier 2b: ingest a Supermemory entry for completed calls (idempotent
+        # via _ingested_voice_call_ids). Failures don't affect the response.
+        if call.get("status") == "completed":
+            await _ingest_voice_call_if_new(call)
         return call
     except Exception as e:
         raise HTTPException(status_code=502, detail=f"AgentPhone error: {e}")
@@ -253,6 +344,16 @@ async def stop_merchant_auto_responder():
         await merchant_inbox.stop()
     except Exception as e:
         print(f"[shutdown] merchant auto-responder stop error: {e}")
+
+
+@app.on_event("startup")
+async def seed_supermemory_on_startup():
+    """Idempotently load fabricated prior-call memories into Supermemory."""
+    try:
+        result = seed_memories_if_missing()
+        print(f"[startup] Supermemory seed: {result}", flush=True)
+    except Exception as e:
+        print(f"[startup] Supermemory seeding skipped: {e}", flush=True)
 
 
 @app.post("/api/browser/cleanup")
@@ -369,6 +470,23 @@ async def email_thread_stream(thread_id: str):
             yield {"event": "error", "data": json.dumps({"error": str(e)})}
 
     return EventSourceResponse(event_generator())
+
+
+# ── Insights (Supermemory-backed) ───────────────────────────────────
+
+@app.get("/api/insights")
+async def insights_all():
+    """Return playbooks for all demo merchants, keyed by merchant_id."""
+    out: dict[str, dict] = {}
+    for merchant_id in ALL_SEEDS.keys():
+        out[merchant_id] = get_merchant_playbook(merchant_id)
+    return out
+
+
+@app.get("/api/insights/{merchant_id}")
+async def insights_one(merchant_id: str):
+    """Return the playbook for a single merchant."""
+    return get_merchant_playbook(merchant_id)
 
 
 # ── Health ──────────────────────────────────────────────────────────

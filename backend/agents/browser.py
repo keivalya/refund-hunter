@@ -13,6 +13,7 @@ Architecture:
   - stop_session()            : explicit stop (cleanup)
 """
 
+import asyncio
 import os
 from typing import AsyncIterator
 
@@ -125,6 +126,45 @@ async def stream_session_events(session_id: str) -> AsyncIterator[dict]:
         output = getattr(final, "output", None)
         state["status"] = "completed"
         state["output"] = str(output) if output else None
+
+        # Tier 2b: write a Supermemory entry for this run. Failures don't
+        # interrupt the stream — memory is nice-to-have.
+        try:
+            from agents.memory import write_memory  # local import (avoid cycles)
+            from datetime import datetime, timezone
+            output_str = state["output"] or ""
+            outcome = "chat_handoff"
+            lower = output_str.lower()
+            if "self-serve" in lower or "self serve" in lower:
+                outcome = "self_serve_completed"
+            elif "login required" in lower:
+                outcome = "login_required"
+            elif "outside business hours" in lower:
+                outcome = "chat_unavailable"
+
+            content = (
+                f"NYT cancellation flow via browser. Outcome: {outcome}. "
+                f"Steps: {step_index}. "
+                + (f"Final agent report: {output_str[:240]}" if output_str else "")
+            )
+            metadata = {
+                "channel": "browser",
+                "outcome": outcome,
+                "navigation_steps": step_index,
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "seed": False,
+                "session_id": session_id,
+            }
+            await asyncio.to_thread(
+                write_memory,
+                merchant_id="nyt",
+                content=content,
+                metadata=metadata,
+                custom_id=f"browser_{session_id}",
+            )
+            print(f"[memory] ingested browser session {session_id} outcome={outcome}", flush=True)
+        except Exception as mem_e:
+            print(f"[memory] browser ingest failed for {session_id}: {mem_e}", flush=True)
 
         yield {
             "type": "ended",

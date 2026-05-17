@@ -7,6 +7,7 @@ import { Zap } from "lucide-react";
 import { TopNav } from "@/components/top-nav";
 import { ScanAnimation } from "@/components/scan-animation";
 import { SubscriptionRow } from "@/components/subscription-row";
+import { MerchantInsights } from "@/components/dashboard/merchant-insights";
 import { getSubscriptions } from "@/lib/api";
 
 // Merchants currently wired to real execute lanes.
@@ -134,6 +135,11 @@ function DashboardContent() {
                 {subscriptions.map((sub) => (
                   <SubscriptionRow key={sub.id} sub={sub} />
                 ))}
+              </div>
+
+              {/* Merchant insights (Supermemory-backed) — moved below list */}
+              <div className="mt-6">
+                <MerchantInsights />
               </div>
             </motion.div>
           )}

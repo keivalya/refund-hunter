@@ -23,6 +23,7 @@ import {
   emailStreamUrl,
   type EmailMessage,
 } from "@/lib/email-sse";
+import { MemoryChip } from "./memory-chip";
 
 type LaneStatus =
   | "idle"
@@ -153,13 +154,14 @@ export function EmailLane({ caseId, merchantName }: EmailLaneProps) {
   return (
     <div className="border border-border rounded-lg overflow-hidden flex flex-col">
       {/* Header */}
-      <div className="px-4 py-3 border-b border-border flex items-center justify-between bg-[var(--surface)]">
-        <div className="flex items-center gap-2">
-          <Mail size={16} className="text-muted-foreground" />
-          <span className="text-[14px] font-semibold">{merchantName}</span>
+      <div className="px-4 py-3 border-b border-border flex items-center justify-between gap-2 bg-[var(--surface)]">
+        <div className="flex items-center gap-2 flex-wrap min-w-0">
+          <Mail size={16} className="text-muted-foreground flex-shrink-0" />
+          <span className="text-[14px] font-semibold truncate">{merchantName}</span>
           <StatusPill status={status} />
+          <MemoryChip merchantId="la_fitness" />
         </div>
-        <span className="text-[11px] font-mono text-muted-foreground">
+        <span className="text-[11px] font-mono text-muted-foreground flex-shrink-0">
           {formatElapsed(elapsed)}
         </span>
       </div>

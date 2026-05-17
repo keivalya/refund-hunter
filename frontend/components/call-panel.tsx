@@ -3,6 +3,7 @@
 import { useState, useCallback, useRef, useEffect } from "react";
 import { Phone } from "lucide-react";
 import { TranscriptView, type TranscriptTurn } from "./transcript-view";
+import { MemoryChip } from "./execute/memory-chip";
 import { startCall, getCall, streamTranscriptUrl } from "@/lib/api";
 
 // Hardcoded case data — Planet Fitness is the only wired case for Tier 0
@@ -171,13 +172,14 @@ export function CallPanel({ caseId }: { caseId: string }) {
   return (
     <div className="border border-border rounded-lg overflow-hidden flex flex-col">
       {/* Header */}
-      <div className="px-4 py-3 border-b border-border flex items-center justify-between bg-[var(--surface)]">
-        <div className="flex items-center gap-2">
-          <Phone size={16} className="text-muted-foreground" />
-          <span className="text-[14px] font-semibold">{caseData.merchant}</span>
+      <div className="px-4 py-3 border-b border-border flex items-center justify-between gap-2 bg-[var(--surface)]">
+        <div className="flex items-center gap-2 flex-wrap min-w-0">
+          <Phone size={16} className="text-muted-foreground flex-shrink-0" />
+          <span className="text-[14px] font-semibold truncate">{caseData.merchant}</span>
           <StatusPill status={status} />
+          <MemoryChip merchantId="planet_fitness" />
         </div>
-        <span className="text-[11px] font-mono text-muted-foreground">
+        <span className="text-[11px] font-mono text-muted-foreground flex-shrink-0">
           {formatElapsed(elapsed)}
         </span>
       </div>

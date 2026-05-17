@@ -338,6 +338,36 @@ async def stream_thread_events(thread_id: str) -> AsyncIterator[dict]:
             confirmation = current.get("confirmation_number")
             if confirmation:
                 yield {"type": "confirmed", "confirmation_number": confirmation}
+                # Tier 2b: write a Supermemory entry. Failures don't interrupt.
+                try:
+                    from agents.memory import write_memory  # local import
+                    elapsed_sec = int(time.monotonic() - started)
+                    # Approximate "reply within hours" — for demo timing this
+                    # is always seconds; we store seconds, label as such.
+                    content = (
+                        f"LA Fitness cancellation via email. "
+                        f"Reply received in {elapsed_sec}s. "
+                        f"Confirmation number: {confirmation}."
+                    )
+                    metadata = {
+                        "channel": "email",
+                        "outcome": "cancelled",
+                        "reply_within_seconds": elapsed_sec,
+                        "confirmation_number": confirmation,
+                        "timestamp": datetime.now(timezone.utc).isoformat(),
+                        "seed": False,
+                        "thread_id": thread_id,
+                    }
+                    await asyncio.to_thread(
+                        write_memory,
+                        merchant_id="la_fitness",
+                        content=content,
+                        metadata=metadata,
+                        custom_id=f"email_{thread_id}",
+                    )
+                    print(f"[memory] ingested email thread {thread_id}", flush=True)
+                except Exception as mem_e:
+                    print(f"[memory] email ingest failed for {thread_id}: {mem_e}", flush=True)
             return
         yield {
             "type": "polling",

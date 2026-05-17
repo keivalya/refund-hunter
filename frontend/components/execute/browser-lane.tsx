@@ -6,6 +6,7 @@ import {
   startBrowserSession,
   browserStreamUrl,
 } from "@/lib/browser-sse";
+import { MemoryChip } from "./memory-chip";
 
 interface BrowserStep {
   step_index: number;
@@ -130,13 +131,14 @@ export function BrowserLane({
   return (
     <div className="border border-border rounded-lg overflow-hidden flex flex-col h-full">
       {/* Header */}
-      <div className="px-4 py-3 border-b border-border flex items-center justify-between bg-[var(--surface)]">
-        <div className="flex items-center gap-2">
-          <Globe size={16} className="text-muted-foreground" />
-          <span className="text-[14px] font-semibold">{merchantName}</span>
+      <div className="px-4 py-3 border-b border-border flex items-center justify-between gap-2 bg-[var(--surface)]">
+        <div className="flex items-center gap-2 flex-wrap min-w-0">
+          <Globe size={16} className="text-muted-foreground flex-shrink-0" />
+          <span className="text-[14px] font-semibold truncate">{merchantName}</span>
           <StatusPill status={status} />
+          <MemoryChip merchantId="nyt" />
         </div>
-        <span className="text-[11px] font-mono text-muted-foreground">
+        <span className="text-[11px] font-mono text-muted-foreground flex-shrink-0">
           {formatElapsed(elapsed)}
         </span>
       </div>
