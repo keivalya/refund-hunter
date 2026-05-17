@@ -1,0 +1,990 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Refund Hunter — Logo Options</title>
+    <style>
+      :root {
+        --bg-dark: #0a0a0a;
+        --bg-light: #fafafa;
+        --fg-dark: #0a0a0a;
+        --fg-light: #fafafa;
+        --muted: #a3a3a3;
+        --accent: #10b981;
+        --border-dark: #262626;
+        --border-light: #e5e5e5;
+        font-family: "Geist", -apple-system, BlinkMacSystemFont, "Segoe UI",
+          system-ui, sans-serif;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+      }
+
+      section {
+        padding: 48px 32px;
+      }
+      section.dark {
+        background: var(--bg-dark);
+        color: var(--fg-light);
+      }
+      section.light {
+        background: var(--bg-light);
+        color: var(--fg-dark);
+      }
+      section.accent {
+        background: var(--bg-dark);
+        color: var(--accent);
+      }
+
+      h2 {
+        font-size: 11px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.12em;
+        margin: 0 0 32px;
+        font-family: "Geist Mono", ui-monospace, SFMono-Regular, Menlo,
+          monospace;
+        opacity: 0.6;
+      }
+      section.accent h2 {
+        color: var(--muted);
+      }
+
+      .grid {
+        max-width: 1200px;
+        margin: 0 auto;
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 48px;
+      }
+
+      .col {
+        display: flex;
+        flex-direction: column;
+        gap: 24px;
+      }
+
+      .mark-row {
+        display: flex;
+        align-items: flex-end;
+        gap: 32px;
+        height: 96px;
+      }
+
+      .mark-cell {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 6px;
+      }
+
+      .size-label {
+        font-size: 10px;
+        font-family: "Geist Mono", ui-monospace, monospace;
+        opacity: 0.5;
+        letter-spacing: 0.04em;
+      }
+
+      .wordmark-row {
+        padding-top: 16px;
+        border-top: 1px solid var(--border-dark);
+      }
+      section.light .wordmark-row {
+        border-top-color: var(--border-light);
+      }
+      section.accent .wordmark-row {
+        border-top-color: var(--border-dark);
+      }
+
+      .concept {
+        font-size: 13px;
+        margin: 0;
+        opacity: 0.7;
+        line-height: 1.5;
+      }
+      .direction-name {
+        font-size: 14px;
+        font-weight: 600;
+        margin: 0;
+      }
+      section.accent .direction-name {
+        color: var(--fg-light);
+      }
+      section.accent .concept,
+      section.accent .size-label {
+        color: var(--muted);
+      }
+
+      /* SVG sizing — color inherits via currentColor */
+      svg.mark {
+        display: block;
+        flex-shrink: 0;
+      }
+      svg.mark.s16 {
+        width: 16px;
+        height: 16px;
+      }
+      svg.mark.s32 {
+        width: 32px;
+        height: 32px;
+      }
+      svg.mark.s96 {
+        width: 96px;
+        height: 96px;
+      }
+      svg.wordmark {
+        display: block;
+        height: 32px;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- ─────────────────────── White on dark ─────────────────────── -->
+    <section class="dark">
+      <h2>White on dark — primary</h2>
+      <div class="grid">
+        <!-- Direction 1: Cut -->
+        <div class="col">
+          <p class="direction-name">1 · The Cut</p>
+          <div class="mark-row">
+            <div class="mark-cell">
+              <svg
+                class="mark s16"
+                viewBox="0 0 64 64"
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                stroke="currentColor"
+                stroke-linecap="square"
+              >
+                <circle
+                  cx="32"
+                  cy="32"
+                  r="22"
+                  stroke-width="2"
+                  stroke-dasharray="58.6 10.5"
+                  stroke-dashoffset="12.02"
+                  vector-effect="non-scaling-stroke"
+                />
+                <line
+                  x1="50.4"
+                  y1="13.6"
+                  x2="13.6"
+                  y2="50.4"
+                  stroke-width="2.5"
+                  vector-effect="non-scaling-stroke"
+                />
+              </svg>
+              <span class="size-label">16</span>
+            </div>
+            <div class="mark-cell">
+              <svg
+                class="mark s32"
+                viewBox="0 0 64 64"
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                stroke="currentColor"
+                stroke-linecap="square"
+              >
+                <circle
+                  cx="32"
+                  cy="32"
+                  r="22"
+                  stroke-width="2"
+                  stroke-dasharray="58.6 10.5"
+                  stroke-dashoffset="12.02"
+                  vector-effect="non-scaling-stroke"
+                />
+                <line
+                  x1="50.4"
+                  y1="13.6"
+                  x2="13.6"
+                  y2="50.4"
+                  stroke-width="2.5"
+                  vector-effect="non-scaling-stroke"
+                />
+              </svg>
+              <span class="size-label">32</span>
+            </div>
+            <div class="mark-cell">
+              <svg
+                class="mark s96"
+                viewBox="0 0 64 64"
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                stroke="currentColor"
+                stroke-linecap="square"
+              >
+                <circle
+                  cx="32"
+                  cy="32"
+                  r="22"
+                  stroke-width="2"
+                  stroke-dasharray="58.6 10.5"
+                  stroke-dashoffset="12.02"
+                  vector-effect="non-scaling-stroke"
+                />
+                <line
+                  x1="50.4"
+                  y1="13.6"
+                  x2="13.6"
+                  y2="50.4"
+                  stroke-width="2.5"
+                  vector-effect="non-scaling-stroke"
+                />
+              </svg>
+              <span class="size-label">96</span>
+            </div>
+          </div>
+          <div class="wordmark-row">
+            <svg
+              class="wordmark"
+              viewBox="0 0 240 64"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <g
+                fill="none"
+                stroke="currentColor"
+                stroke-linecap="square"
+                transform="translate(0,12) scale(0.625)"
+              >
+                <circle
+                  cx="32"
+                  cy="32"
+                  r="22"
+                  stroke-width="3.2"
+                  stroke-dasharray="58.6 10.5"
+                  stroke-dashoffset="12.02"
+                />
+                <line
+                  x1="50.4"
+                  y1="13.6"
+                  x2="13.6"
+                  y2="50.4"
+                  stroke-width="4"
+                />
+              </g>
+              <text
+                x="52"
+                y="32"
+                fill="currentColor"
+                font-family="Geist, -apple-system, system-ui, sans-serif"
+                font-size="24"
+                font-weight="600"
+                letter-spacing="-0.48"
+                dominant-baseline="central"
+              >
+                refund hunter
+              </text>
+            </svg>
+          </div>
+          <p class="concept">Geometric severance of recurring loop.</p>
+        </div>
+
+        <!-- Direction 2: Phone Tap -->
+        <div class="col">
+          <p class="direction-name">2 · The Phone Tap</p>
+          <div class="mark-row">
+            <div class="mark-cell">
+              <svg
+                class="mark s16"
+                viewBox="0 0 64 64"
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                stroke="currentColor"
+                stroke-linecap="round"
+              >
+                <line
+                  x1="12"
+                  y1="48"
+                  x2="52"
+                  y2="18"
+                  stroke-width="3.5"
+                  vector-effect="non-scaling-stroke"
+                />
+                <line
+                  x1="37"
+                  y1="19"
+                  x2="47"
+                  y2="32"
+                  stroke-width="3.5"
+                  vector-effect="non-scaling-stroke"
+                />
+              </svg>
+              <span class="size-label">16</span>
+            </div>
+            <div class="mark-cell">
+              <svg
+                class="mark s32"
+                viewBox="0 0 64 64"
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                stroke="currentColor"
+                stroke-linecap="round"
+              >
+                <line
+                  x1="12"
+                  y1="48"
+                  x2="52"
+                  y2="18"
+                  stroke-width="3.5"
+                  vector-effect="non-scaling-stroke"
+                />
+                <line
+                  x1="37"
+                  y1="19"
+                  x2="47"
+                  y2="32"
+                  stroke-width="3.5"
+                  vector-effect="non-scaling-stroke"
+                />
+              </svg>
+              <span class="size-label">32</span>
+            </div>
+            <div class="mark-cell">
+              <svg
+                class="mark s96"
+                viewBox="0 0 64 64"
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                stroke="currentColor"
+                stroke-linecap="round"
+              >
+                <line
+                  x1="12"
+                  y1="48"
+                  x2="52"
+                  y2="18"
+                  stroke-width="3.5"
+                  vector-effect="non-scaling-stroke"
+                />
+                <line
+                  x1="37"
+                  y1="19"
+                  x2="47"
+                  y2="32"
+                  stroke-width="3.5"
+                  vector-effect="non-scaling-stroke"
+                />
+              </svg>
+              <span class="size-label">96</span>
+            </div>
+          </div>
+          <div class="wordmark-row">
+            <svg
+              class="wordmark"
+              viewBox="0 0 240 64"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <g
+                fill="none"
+                stroke="currentColor"
+                stroke-linecap="round"
+                transform="translate(0,12) scale(0.625)"
+              >
+                <line x1="12" y1="48" x2="52" y2="18" stroke-width="5.6" />
+                <line x1="37" y1="19" x2="47" y2="32" stroke-width="5.6" />
+              </g>
+              <text
+                x="52"
+                y="32"
+                fill="currentColor"
+                font-family="Geist, -apple-system, system-ui, sans-serif"
+                font-size="24"
+                font-weight="600"
+                letter-spacing="-0.48"
+                dominant-baseline="central"
+              >
+                refund hunter
+              </text>
+            </svg>
+          </div>
+          <p class="concept">Crosshair receiver on your line.</p>
+        </div>
+
+        <!-- Direction 3: Asymmetric H -->
+        <div class="col">
+          <p class="direction-name">3 · The Asymmetric H</p>
+          <div class="mark-row">
+            <div class="mark-cell">
+              <svg
+                class="mark s16"
+                viewBox="0 0 64 64"
+                xmlns="http://www.w3.org/2000/svg"
+                fill="currentColor"
+              >
+                <rect x="12" y="6" width="8" height="52" />
+                <rect x="44" y="12" width="8" height="46" />
+                <rect x="20" y="28" width="24" height="8" />
+              </svg>
+              <span class="size-label">16</span>
+            </div>
+            <div class="mark-cell">
+              <svg
+                class="mark s32"
+                viewBox="0 0 64 64"
+                xmlns="http://www.w3.org/2000/svg"
+                fill="currentColor"
+              >
+                <rect x="12" y="6" width="8" height="52" />
+                <rect x="44" y="12" width="8" height="46" />
+                <rect x="20" y="28" width="24" height="8" />
+              </svg>
+              <span class="size-label">32</span>
+            </div>
+            <div class="mark-cell">
+              <svg
+                class="mark s96"
+                viewBox="0 0 64 64"
+                xmlns="http://www.w3.org/2000/svg"
+                fill="currentColor"
+              >
+                <rect x="12" y="6" width="8" height="52" />
+                <rect x="44" y="12" width="8" height="46" />
+                <rect x="20" y="28" width="24" height="8" />
+              </svg>
+              <span class="size-label">96</span>
+            </div>
+          </div>
+          <div class="wordmark-row">
+            <svg
+              class="wordmark"
+              viewBox="0 0 240 64"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <g
+                fill="currentColor"
+                transform="translate(0,12) scale(0.625)"
+              >
+                <rect x="12" y="6" width="8" height="52" />
+                <rect x="44" y="12" width="8" height="46" />
+                <rect x="20" y="28" width="24" height="8" />
+              </g>
+              <text
+                x="52"
+                y="32"
+                fill="currentColor"
+                font-family="Geist, -apple-system, system-ui, sans-serif"
+                font-size="24"
+                font-weight="600"
+                letter-spacing="-0.48"
+                dominant-baseline="central"
+              >
+                refund hunter
+              </text>
+            </svg>
+          </div>
+          <p class="concept">Letter with intentional asymmetry.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ─────────────────────── Black on light ─────────────────────── -->
+    <section class="light">
+      <h2>Black on light — documents, light surfaces</h2>
+      <div class="grid">
+        <!-- Direction 1 -->
+        <div class="col">
+          <p class="direction-name">1 · The Cut</p>
+          <div class="mark-row">
+            <div class="mark-cell">
+              <svg
+                class="mark s16"
+                viewBox="0 0 64 64"
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                stroke="currentColor"
+                stroke-linecap="square"
+              >
+                <circle
+                  cx="32"
+                  cy="32"
+                  r="22"
+                  stroke-width="2"
+                  stroke-dasharray="58.6 10.5"
+                  stroke-dashoffset="12.02"
+                  vector-effect="non-scaling-stroke"
+                />
+                <line
+                  x1="50.4"
+                  y1="13.6"
+                  x2="13.6"
+                  y2="50.4"
+                  stroke-width="2.5"
+                  vector-effect="non-scaling-stroke"
+                />
+              </svg>
+              <span class="size-label">16</span>
+            </div>
+            <div class="mark-cell">
+              <svg
+                class="mark s32"
+                viewBox="0 0 64 64"
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                stroke="currentColor"
+                stroke-linecap="square"
+              >
+                <circle
+                  cx="32"
+                  cy="32"
+                  r="22"
+                  stroke-width="2"
+                  stroke-dasharray="58.6 10.5"
+                  stroke-dashoffset="12.02"
+                  vector-effect="non-scaling-stroke"
+                />
+                <line
+                  x1="50.4"
+                  y1="13.6"
+                  x2="13.6"
+                  y2="50.4"
+                  stroke-width="2.5"
+                  vector-effect="non-scaling-stroke"
+                />
+              </svg>
+              <span class="size-label">32</span>
+            </div>
+            <div class="mark-cell">
+              <svg
+                class="mark s96"
+                viewBox="0 0 64 64"
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                stroke="currentColor"
+                stroke-linecap="square"
+              >
+                <circle
+                  cx="32"
+                  cy="32"
+                  r="22"
+                  stroke-width="2"
+                  stroke-dasharray="58.6 10.5"
+                  stroke-dashoffset="12.02"
+                  vector-effect="non-scaling-stroke"
+                />
+                <line
+                  x1="50.4"
+                  y1="13.6"
+                  x2="13.6"
+                  y2="50.4"
+                  stroke-width="2.5"
+                  vector-effect="non-scaling-stroke"
+                />
+              </svg>
+              <span class="size-label">96</span>
+            </div>
+          </div>
+          <div class="wordmark-row">
+            <svg
+              class="wordmark"
+              viewBox="0 0 240 64"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <g
+                fill="none"
+                stroke="currentColor"
+                stroke-linecap="square"
+                transform="translate(0,12) scale(0.625)"
+              >
+                <circle
+                  cx="32"
+                  cy="32"
+                  r="22"
+                  stroke-width="3.2"
+                  stroke-dasharray="58.6 10.5"
+                  stroke-dashoffset="12.02"
+                />
+                <line
+                  x1="50.4"
+                  y1="13.6"
+                  x2="13.6"
+                  y2="50.4"
+                  stroke-width="4"
+                />
+              </g>
+              <text
+                x="52"
+                y="32"
+                fill="currentColor"
+                font-family="Geist, -apple-system, system-ui, sans-serif"
+                font-size="24"
+                font-weight="600"
+                letter-spacing="-0.48"
+                dominant-baseline="central"
+              >
+                refund hunter
+              </text>
+            </svg>
+          </div>
+          <p class="concept">Geometric severance of recurring loop.</p>
+        </div>
+
+        <!-- Direction 2 -->
+        <div class="col">
+          <p class="direction-name">2 · The Phone Tap</p>
+          <div class="mark-row">
+            <div class="mark-cell">
+              <svg
+                class="mark s16"
+                viewBox="0 0 64 64"
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                stroke="currentColor"
+                stroke-linecap="round"
+              >
+                <line
+                  x1="12"
+                  y1="48"
+                  x2="52"
+                  y2="18"
+                  stroke-width="3.5"
+                  vector-effect="non-scaling-stroke"
+                />
+                <line
+                  x1="37"
+                  y1="19"
+                  x2="47"
+                  y2="32"
+                  stroke-width="3.5"
+                  vector-effect="non-scaling-stroke"
+                />
+              </svg>
+              <span class="size-label">16</span>
+            </div>
+            <div class="mark-cell">
+              <svg
+                class="mark s32"
+                viewBox="0 0 64 64"
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                stroke="currentColor"
+                stroke-linecap="round"
+              >
+                <line
+                  x1="12"
+                  y1="48"
+                  x2="52"
+                  y2="18"
+                  stroke-width="3.5"
+                  vector-effect="non-scaling-stroke"
+                />
+                <line
+                  x1="37"
+                  y1="19"
+                  x2="47"
+                  y2="32"
+                  stroke-width="3.5"
+                  vector-effect="non-scaling-stroke"
+                />
+              </svg>
+              <span class="size-label">32</span>
+            </div>
+            <div class="mark-cell">
+              <svg
+                class="mark s96"
+                viewBox="0 0 64 64"
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                stroke="currentColor"
+                stroke-linecap="round"
+              >
+                <line
+                  x1="12"
+                  y1="48"
+                  x2="52"
+                  y2="18"
+                  stroke-width="3.5"
+                  vector-effect="non-scaling-stroke"
+                />
+                <line
+                  x1="37"
+                  y1="19"
+                  x2="47"
+                  y2="32"
+                  stroke-width="3.5"
+                  vector-effect="non-scaling-stroke"
+                />
+              </svg>
+              <span class="size-label">96</span>
+            </div>
+          </div>
+          <div class="wordmark-row">
+            <svg
+              class="wordmark"
+              viewBox="0 0 240 64"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <g
+                fill="none"
+                stroke="currentColor"
+                stroke-linecap="round"
+                transform="translate(0,12) scale(0.625)"
+              >
+                <line x1="12" y1="48" x2="52" y2="18" stroke-width="5.6" />
+                <line x1="37" y1="19" x2="47" y2="32" stroke-width="5.6" />
+              </g>
+              <text
+                x="52"
+                y="32"
+                fill="currentColor"
+                font-family="Geist, -apple-system, system-ui, sans-serif"
+                font-size="24"
+                font-weight="600"
+                letter-spacing="-0.48"
+                dominant-baseline="central"
+              >
+                refund hunter
+              </text>
+            </svg>
+          </div>
+          <p class="concept">Crosshair receiver on your line.</p>
+        </div>
+
+        <!-- Direction 3 -->
+        <div class="col">
+          <p class="direction-name">3 · The Asymmetric H</p>
+          <div class="mark-row">
+            <div class="mark-cell">
+              <svg
+                class="mark s16"
+                viewBox="0 0 64 64"
+                xmlns="http://www.w3.org/2000/svg"
+                fill="currentColor"
+              >
+                <rect x="12" y="6" width="8" height="52" />
+                <rect x="44" y="12" width="8" height="46" />
+                <rect x="20" y="28" width="24" height="8" />
+              </svg>
+              <span class="size-label">16</span>
+            </div>
+            <div class="mark-cell">
+              <svg
+                class="mark s32"
+                viewBox="0 0 64 64"
+                xmlns="http://www.w3.org/2000/svg"
+                fill="currentColor"
+              >
+                <rect x="12" y="6" width="8" height="52" />
+                <rect x="44" y="12" width="8" height="46" />
+                <rect x="20" y="28" width="24" height="8" />
+              </svg>
+              <span class="size-label">32</span>
+            </div>
+            <div class="mark-cell">
+              <svg
+                class="mark s96"
+                viewBox="0 0 64 64"
+                xmlns="http://www.w3.org/2000/svg"
+                fill="currentColor"
+              >
+                <rect x="12" y="6" width="8" height="52" />
+                <rect x="44" y="12" width="8" height="46" />
+                <rect x="20" y="28" width="24" height="8" />
+              </svg>
+              <span class="size-label">96</span>
+            </div>
+          </div>
+          <div class="wordmark-row">
+            <svg
+              class="wordmark"
+              viewBox="0 0 240 64"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <g
+                fill="currentColor"
+                transform="translate(0,12) scale(0.625)"
+              >
+                <rect x="12" y="6" width="8" height="52" />
+                <rect x="44" y="12" width="8" height="46" />
+                <rect x="20" y="28" width="24" height="8" />
+              </g>
+              <text
+                x="52"
+                y="32"
+                fill="currentColor"
+                font-family="Geist, -apple-system, system-ui, sans-serif"
+                font-size="24"
+                font-weight="600"
+                letter-spacing="-0.48"
+                dominant-baseline="central"
+              >
+                refund hunter
+              </text>
+            </svg>
+          </div>
+          <p class="concept">Letter with intentional asymmetry.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ─────────────────────── Accent on dark ─────────────────────── -->
+    <section class="accent">
+      <h2>Accent on dark — active / celebration states</h2>
+      <div class="grid">
+        <!-- Direction 1 -->
+        <div class="col">
+          <p class="direction-name">1 · The Cut</p>
+          <div class="mark-row">
+            <div class="mark-cell">
+              <svg
+                class="mark s32"
+                viewBox="0 0 64 64"
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                stroke="currentColor"
+                stroke-linecap="square"
+              >
+                <circle
+                  cx="32"
+                  cy="32"
+                  r="22"
+                  stroke-width="2"
+                  stroke-dasharray="58.6 10.5"
+                  stroke-dashoffset="12.02"
+                  vector-effect="non-scaling-stroke"
+                />
+                <line
+                  x1="50.4"
+                  y1="13.6"
+                  x2="13.6"
+                  y2="50.4"
+                  stroke-width="2.5"
+                  vector-effect="non-scaling-stroke"
+                />
+              </svg>
+              <span class="size-label">32</span>
+            </div>
+            <div class="mark-cell">
+              <svg
+                class="mark s96"
+                viewBox="0 0 64 64"
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                stroke="currentColor"
+                stroke-linecap="square"
+              >
+                <circle
+                  cx="32"
+                  cy="32"
+                  r="22"
+                  stroke-width="2"
+                  stroke-dasharray="58.6 10.5"
+                  stroke-dashoffset="12.02"
+                  vector-effect="non-scaling-stroke"
+                />
+                <line
+                  x1="50.4"
+                  y1="13.6"
+                  x2="13.6"
+                  y2="50.4"
+                  stroke-width="2.5"
+                  vector-effect="non-scaling-stroke"
+                />
+              </svg>
+              <span class="size-label">96</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Direction 2 -->
+        <div class="col">
+          <p class="direction-name">2 · The Phone Tap</p>
+          <div class="mark-row">
+            <div class="mark-cell">
+              <svg
+                class="mark s32"
+                viewBox="0 0 64 64"
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                stroke="currentColor"
+                stroke-linecap="round"
+              >
+                <line
+                  x1="12"
+                  y1="48"
+                  x2="52"
+                  y2="18"
+                  stroke-width="3.5"
+                  vector-effect="non-scaling-stroke"
+                />
+                <line
+                  x1="37"
+                  y1="19"
+                  x2="47"
+                  y2="32"
+                  stroke-width="3.5"
+                  vector-effect="non-scaling-stroke"
+                />
+              </svg>
+              <span class="size-label">32</span>
+            </div>
+            <div class="mark-cell">
+              <svg
+                class="mark s96"
+                viewBox="0 0 64 64"
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                stroke="currentColor"
+                stroke-linecap="round"
+              >
+                <line
+                  x1="12"
+                  y1="48"
+                  x2="52"
+                  y2="18"
+                  stroke-width="3.5"
+                  vector-effect="non-scaling-stroke"
+                />
+                <line
+                  x1="37"
+                  y1="19"
+                  x2="47"
+                  y2="32"
+                  stroke-width="3.5"
+                  vector-effect="non-scaling-stroke"
+                />
+              </svg>
+              <span class="size-label">96</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Direction 3 -->
+        <div class="col">
+          <p class="direction-name">3 · The Asymmetric H</p>
+          <div class="mark-row">
+            <div class="mark-cell">
+              <svg
+                class="mark s32"
+                viewBox="0 0 64 64"
+                xmlns="http://www.w3.org/2000/svg"
+                fill="currentColor"
+              >
+                <rect x="12" y="6" width="8" height="52" />
+                <rect x="44" y="12" width="8" height="46" />
+                <rect x="20" y="28" width="24" height="8" />
+              </svg>
+              <span class="size-label">32</span>
+            </div>
+            <div class="mark-cell">
+              <svg
+                class="mark s96"
+                viewBox="0 0 64 64"
+                xmlns="http://www.w3.org/2000/svg"
+                fill="currentColor"
+              >
+                <rect x="12" y="6" width="8" height="52" />
+                <rect x="44" y="12" width="8" height="46" />
+                <rect x="20" y="28" width="24" height="8" />
+              </svg>
+              <span class="size-label">96</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </body>
+</html>

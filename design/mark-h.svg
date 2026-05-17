@@ -1,0 +1,15 @@
+<svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" fill="currentColor">
+  <!-- Direction 3: The Asymmetric H.
+       Geometric H with the right vertical bar 6px shorter at the top —
+       a deliberate incompleteness that survives 16px rendering as a
+       1.5px difference in stem heights.
+
+       Geometry:
+         left vertical:  rect (12,6,8,52)
+         right vertical: rect (44,12,8,46)  — top is 6 lower than left
+         crossbar:       rect (20,28,24,8) — centered on overall height
+   -->
+  <rect x="12" y="6" width="8" height="52" />
+  <rect x="44" y="12" width="8" height="46" />
+  <rect x="20" y="28" width="24" height="8" />
+</svg>

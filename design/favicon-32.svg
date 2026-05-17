@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32" fill="none" stroke="currentColor" stroke-linecap="square">
+  <!-- 32x32 favicon-tuned variant of mark-cut.svg.
+       Coordinates are halved from the 64x64 reference, with stroke widths
+       and dasharray values scaled proportionally so visual proportions
+       remain identical. Use this as the reference for raster export to
+       favicon.ico if a non-SVG-supporting browser needs a fallback.
+
+       circle r=11 at (16,16); circumference 2π*11 = 69.12
+       dash 29.3 / gap 5.25 (halved from 58.6 / 10.5)
+       dashoffset 6.01 (halved from 12.02)
+   -->
+  <circle
+    cx="16" cy="16" r="11"
+    stroke-width="1.75"
+    stroke-dasharray="29.3 5.25"
+    stroke-dashoffset="6.01"
+  />
+  <line
+    x1="25.2" y1="6.8" x2="6.8" y2="25.2"
+    stroke-width="2.25"
+  />
+</svg>

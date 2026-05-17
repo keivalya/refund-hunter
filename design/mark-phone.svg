@@ -1,0 +1,20 @@
+<svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round">
+  <!-- Direction 2: The Phone Tap.
+       Two thick rounded line segments. The longer one tilts ~37° from
+       horizontal (close to the spec's "30°", chosen for cleaner pixel
+       endpoints). The shorter cross piece is perpendicular to the main
+       line, crossing near the upper-right end ≈ 75% along the body.
+
+       Reads as: asymmetric crosshair / phone receiver glyph.
+   -->
+  <line
+    x1="12" y1="48" x2="52" y2="18"
+    stroke-width="3.5"
+    vector-effect="non-scaling-stroke"
+  />
+  <line
+    x1="37" y1="19" x2="47" y2="32"
+    stroke-width="3.5"
+    vector-effect="non-scaling-stroke"
+  />
+</svg>
