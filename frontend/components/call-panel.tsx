@@ -1,37 +1,32 @@
 "use client";
 
 import { useState, useCallback, useRef, useEffect } from "react";
-import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
 import { TranscriptView, type TranscriptTurn } from "./transcript-view";
 import { startCall, getCall, streamTranscriptUrl } from "@/lib/api";
 
-interface CaseData {
-  case_id: string;
-  merchant: string;
-  plan: string;
-  monthly_cost: number;
-  member_name: string;
-  member_id: string;
-  home_club: string;
-  billing_date: string;
-  member_since: string;
-}
+// Hardcoded case data — Planet Fitness is the only wired case for Tier 0
+const CASES: Record<
+  string,
+  { merchant: string; plan: string; monthly_cost: number; phone: string }
+> = {
+  sub_planet_fitness: {
+    merchant: "Planet Fitness",
+    plan: "Classic Membership",
+    monthly_cost: 24.99,
+    phone: "+16179358558",
+  },
+};
 
-// Target phone number for demo — the "merchant"
-const TARGET_PHONE = "+16179358558";
+type CallStatus =
+  | "idle"
+  | "starting"
+  | "ringing"
+  | "in-progress"
+  | "completed"
+  | "failed";
 
-type CallStatus = "idle" | "starting" | "ringing" | "in-progress" | "completed" | "failed";
-
-export function CallPanel({ caseData }: { caseData: CaseData }) {
+export function CallPanel({ caseId }: { caseId: string }) {
+  const caseData = CASES[caseId];
   const [status, setStatus] = useState<CallStatus>("idle");
   const [callId, setCallId] = useState<string | null>(null);
   const [turns, setTurns] = useState<TranscriptTurn[]>([]);
@@ -40,7 +35,6 @@ export function CallPanel({ caseData }: { caseData: CaseData }) {
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const eventSourceRef = useRef<EventSource | null>(null);
 
-  // Clean up on unmount
   useEffect(() => {
     return () => {
       if (pollRef.current) clearInterval(pollRef.current);
@@ -49,62 +43,61 @@ export function CallPanel({ caseData }: { caseData: CaseData }) {
   }, []);
 
   const handleStartCall = useCallback(async () => {
+    if (!caseData) return;
     setError(null);
     setTurns([]);
     setDuration(null);
     setStatus("starting");
 
     try {
-      const result = await startCall(TARGET_PHONE);
+      const result = await startCall(caseData.phone);
       setCallId(result.call_id);
       setStatus(result.status === "ringing" ? "ringing" : "in-progress");
 
-      // Start SSE transcript stream
       const es = new EventSource(streamTranscriptUrl(result.call_id));
       eventSourceRef.current = es;
 
       es.onmessage = (event) => {
         try {
           const data = JSON.parse(event.data);
-
           if (data.role && data.content) {
-            setTurns((prev) => [...prev, { role: data.role, content: data.content }]);
+            setTurns((prev) => [
+              ...prev,
+              { role: data.role, content: data.content },
+            ]);
             setStatus("in-progress");
           }
-
           if (data.status === "ended" || data.status === "completed") {
             setStatus("completed");
             if (data.duration) setDuration(data.duration);
             es.close();
           }
         } catch {
-          // Non-JSON data, ignore
+          // Non-JSON, ignore
         }
       };
 
       es.onerror = () => {
-        // SSE connection closed — might mean call ended. Poll for final state.
         es.close();
         pollForCompletion(result.call_id);
       };
 
-      // Also poll periodically for status updates (SSE may not cover everything)
-      pollRef.current = setInterval(() => pollForCompletion(result.call_id), 5000);
+      pollRef.current = setInterval(
+        () => pollForCompletion(result.call_id),
+        5000
+      );
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to start call");
       setStatus("failed");
     }
-  }, []);
+  }, [caseData]);
 
   const pollForCompletion = useCallback(async (id: string) => {
     try {
       const call = await getCall(id);
-
       if (call.status === "completed") {
         setStatus("completed");
         setDuration(call.durationSeconds);
-
-        // Build transcript from call data if SSE didn't deliver it
         if (call.transcripts && call.transcripts.length > 0) {
           const builtTurns: TranscriptTurn[] = [];
           for (const t of call.transcripts) {
@@ -117,7 +110,6 @@ export function CallPanel({ caseData }: { caseData: CaseData }) {
           }
           setTurns(builtTurns);
         }
-
         if (pollRef.current) {
           clearInterval(pollRef.current);
           pollRef.current = null;
@@ -135,102 +127,108 @@ export function CallPanel({ caseData }: { caseData: CaseData }) {
     }
   }, []);
 
+  if (!caseData) {
+    return (
+      <div className="text-center py-16 text-muted-foreground text-[13px]">
+        Unknown case: {caseId}
+      </div>
+    );
+  }
+
   const isLive = status === "ringing" || status === "in-progress";
   const isCompleted = status === "completed";
   const canStart = status === "idle" || status === "failed" || status === "completed";
 
   return (
     <div className="space-y-6">
-      {/* Case Card */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle className="text-xl">{caseData.merchant}</CardTitle>
-              <CardDescription>{caseData.plan}</CardDescription>
-            </div>
-            <div className="text-right">
-              <p className="text-2xl font-bold">${caseData.monthly_cost}</p>
-              <p className="text-xs text-muted-foreground">/month</p>
-            </div>
+      {/* Case header */}
+      <div className="border border-border rounded-lg px-5 py-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-lg font-semibold">{caseData.merchant}</h2>
+            <p className="text-[13px] text-muted-foreground">{caseData.plan}</p>
           </div>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-2 gap-4 text-sm">
-            <div>
-              <span className="text-muted-foreground">Member:</span>{" "}
-              {caseData.member_name}
-            </div>
-            <div>
-              <span className="text-muted-foreground">ID:</span>{" "}
-              {caseData.member_id}
-            </div>
-            <div>
-              <span className="text-muted-foreground">Club:</span>{" "}
-              {caseData.home_club}
-            </div>
-            <div>
-              <span className="text-muted-foreground">Since:</span>{" "}
-              {caseData.member_since}
-            </div>
+          <div className="text-right">
+            <p className="text-2xl font-semibold">${caseData.monthly_cost}</p>
+            <p className="text-[11px] text-muted-foreground">/month</p>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
-      {/* Call Control */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-lg">Cancellation Call</CardTitle>
-            <StatusBadge status={status} />
+      {/* Call control */}
+      <div className="border border-border rounded-lg px-5 py-4 space-y-4">
+        <div className="flex items-center justify-between">
+          <h3 className="text-[15px] font-semibold">Cancellation Call</h3>
+          <StatusPill status={status} />
+        </div>
+
+        {error && <p className="text-[13px] text-destructive">{error}</p>}
+
+        {canStart && (
+          <button
+            onClick={handleStartCall}
+            className="w-full py-2.5 rounded-md text-[15px] font-medium bg-foreground text-background hover:opacity-90 transition-opacity"
+          >
+            {isCompleted ? "Call Again" : "Approve & Call"}
+          </button>
+        )}
+
+        {(isLive || isCompleted || turns.length > 0) && (
+          <>
+            <div className="border-t border-border" />
+            <TranscriptView turns={turns} isLive={isLive} />
+          </>
+        )}
+
+        {isCompleted && duration && (
+          <div className="flex items-center justify-between text-[13px] text-muted-foreground pt-2">
+            <span>
+              Duration: {Math.floor(duration / 60)}m {duration % 60}s
+            </span>
+            <span className="inline-flex items-center rounded px-2 py-0.5 text-[11px] font-medium bg-accent/10 text-accent">
+              Cancellation Requested
+            </span>
           </div>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {error && (
-            <p className="text-sm text-destructive">{error}</p>
-          )}
-
-          {canStart && (
-            <Button
-              onClick={handleStartCall}
-              className="w-full"
-              size="lg"
-            >
-              {isCompleted ? "Call Again" : "Approve & Call"}
-            </Button>
-          )}
-
-          {(isLive || isCompleted || turns.length > 0) && (
-            <>
-              <Separator />
-              <TranscriptView turns={turns} isLive={isLive} />
-            </>
-          )}
-
-          {isCompleted && duration && (
-            <div className="flex items-center justify-between text-sm text-muted-foreground pt-2">
-              <span>Duration: {Math.floor(duration / 60)}m {duration % 60}s</span>
-              <Badge variant="default" className="bg-green-600 text-white">
-                Cancellation Requested
-              </Badge>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+        )}
+      </div>
     </div>
   );
 }
 
-function StatusBadge({ status }: { status: CallStatus }) {
+function StatusPill({ status }: { status: CallStatus }) {
   const config: Record<CallStatus, { label: string; className: string }> = {
-    idle: { label: "Ready", className: "bg-muted text-muted-foreground" },
-    starting: { label: "Starting...", className: "bg-yellow-600 text-white" },
-    ringing: { label: "Ringing", className: "bg-yellow-600 text-white animate-pulse" },
-    "in-progress": { label: "In Progress", className: "bg-green-600 text-white animate-pulse" },
-    completed: { label: "Completed", className: "bg-green-600 text-white" },
-    failed: { label: "Failed", className: "bg-destructive text-white" },
+    idle: {
+      label: "Ready",
+      className: "bg-[var(--surface-elevated)] text-muted-foreground",
+    },
+    starting: {
+      label: "Starting...",
+      className: "bg-amber-500/10 text-amber-500",
+    },
+    ringing: {
+      label: "Ringing",
+      className: "bg-amber-500/10 text-amber-500 animate-pulse",
+    },
+    "in-progress": {
+      label: "In Progress",
+      className: "bg-accent/10 text-accent animate-pulse",
+    },
+    completed: {
+      label: "Completed",
+      className: "bg-accent/10 text-accent",
+    },
+    failed: {
+      label: "Failed",
+      className: "bg-destructive/10 text-destructive",
+    },
   };
 
   const { label, className } = config[status];
-  return <Badge className={className}>{label}</Badge>;
+  return (
+    <span
+      className={`inline-flex items-center rounded px-2 py-0.5 text-[11px] font-mono ${className}`}
+    >
+      {label}
+    </span>
+  );
 }

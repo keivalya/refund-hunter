@@ -1,5 +1,21 @@
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
+export async function getGmailAuthUrl(): Promise<string> {
+  const res = await fetch(`${API_BASE}/api/auth/gmail/start`);
+  if (!res.ok) throw new Error("Failed to start Gmail auth");
+  const data = await res.json();
+  return data.auth_url;
+}
+
+export async function getSubscriptions() {
+  const res = await fetch(`${API_BASE}/api/subscriptions`);
+  if (!res.ok) {
+    if (res.status === 401) throw new Error("Gmail not connected");
+    throw new Error("Failed to fetch subscriptions");
+  }
+  return res.json();
+}
+
 export async function getCase() {
   const res = await fetch(`${API_BASE}/api/case`);
   if (!res.ok) throw new Error("Failed to fetch case");

@@ -1,25 +1,34 @@
 """
-Refund Hunter — FastAPI backend (Tier 0)
+Refund Hunter — FastAPI backend
 
-Three endpoints:
-  POST /api/calls          — start a cancellation call
-  GET  /api/calls/{id}     — get call status + transcript
-  GET  /api/calls/{id}/stream — SSE proxy for live transcript
+Endpoints:
+  GET  /api/auth/gmail/start        — start Gmail OAuth flow
+  GET  /api/auth/gmail/callback     — handle OAuth callback
+  GET  /api/subscriptions           — return curated subscription list
+  POST /api/calls                   — start a cancellation call
+  GET  /api/calls/{id}              — get call status + transcript
+  GET  /api/calls/{id}/stream       — SSE proxy for live transcript
 """
 
+import asyncio
 import json
+
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import RedirectResponse
 from pydantic import BaseModel
 from sse_starlette.sse import EventSourceResponse
 from dotenv import load_dotenv
 
 from agents.voice import start_call, get_call, stream_transcript
 from merchants.planet_fitness import SYSTEM_PROMPT, INITIAL_GREETING, CASE_DATA
+from auth.gmail_oauth import create_auth_url, exchange_code
+from auth.token_store import save_tokens, is_connected
+from data.subscriptions import SUBSCRIPTIONS, TOTAL_ANNUAL_RECOVERABLE
 
 load_dotenv(dotenv_path="../.env")
 
-app = FastAPI(title="Refund Hunter", version="0.1.0")
+app = FastAPI(title="Refund Hunter", version="0.2.0")
 
 app.add_middleware(
     CORSMiddleware,
@@ -43,7 +52,66 @@ class CallResponse(BaseModel):
     to_number: str
 
 
-# ── Endpoints ───────────────────────────────────────────────────────
+# ── Gmail OAuth ─────────────────────────────────────────────────────
+
+@app.get("/api/auth/gmail/start")
+async def gmail_auth_start():
+    """Generate Google OAuth URL and return it to the frontend."""
+    try:
+        auth_url, state = create_auth_url()
+        return {"auth_url": auth_url, "state": state}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"OAuth error: {e}")
+
+
+@app.get("/api/auth/gmail/callback")
+async def gmail_auth_callback(code: str, state: str):
+    """
+    Handle OAuth callback from Google.
+    Exchanges code for tokens, stores them, redirects to dashboard.
+    """
+    try:
+        tokens = exchange_code(code, state)
+        # DEMO NOTE: We don't call Gmail API to get email — just store the tokens.
+        # In production, we'd call userinfo endpoint to get the email.
+        save_tokens(
+            email="connected_user",
+            access_token=tokens["access_token"],
+            refresh_token=tokens.get("refresh_token"),
+        )
+        return RedirectResponse(url="http://localhost:3000/dashboard?connected=true")
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"OAuth exchange error: {e}")
+
+
+# ── Subscriptions ───────────────────────────────────────────────────
+
+@app.get("/api/subscriptions")
+async def get_subscriptions():
+    """
+    Return the curated subscription list.
+
+    DEMO NOTE: We complete real OAuth (judge sees the consent screen and grants
+    gmail.readonly), but for hackathon timing we return a curated subscription
+    list rather than running a real classifier over the inbox. The token is
+    stored and the next iteration would call Gmail API + Claude Sonnet.
+    """
+    if not is_connected():
+        raise HTTPException(status_code=401, detail="Gmail not connected")
+
+    # Simulate scan time so the animation feels real
+    await asyncio.sleep(4)
+
+    return {
+        "subscriptions": SUBSCRIPTIONS,
+        "total_annual_recoverable": TOTAL_ANNUAL_RECOVERABLE,
+        "count": len(SUBSCRIPTIONS),
+    }
+
+
+# ── Calls (unchanged from Tier 0) ──────────────────────────────────
 
 @app.get("/api/case")
 async def get_case():
@@ -97,13 +165,10 @@ async def stream_call_transcript(call_id: str):
     async def event_generator():
         try:
             async for line in stream_transcript(call_id):
-                # AgentPhone sends SSE-formatted lines (data: {...})
-                # Forward them as-is
                 if line.startswith("data:"):
                     data = line[5:].strip()
                     yield {"data": data}
                 elif line.startswith("event:"):
-                    # Store event type for next data line
                     pass
                 else:
                     yield {"data": line}
