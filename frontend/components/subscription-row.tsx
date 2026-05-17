@@ -1,7 +1,7 @@
 "use client";
 
 import { Phone, Globe, Mail } from "lucide-react";
-import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { useState } from "react";
 
 interface Subscription {
@@ -23,118 +23,77 @@ const CHANNEL_ICONS: Record<string, typeof Phone> = {
   email: Mail,
 };
 
-const DIFFICULTY_LABELS: Record<string, string> = {
-  phone_required: "phone required",
-  dark_pattern: "dark pattern",
-  email_only: "email only",
-  easy: "easy",
-};
-
-const DISABLED_COPY: Record<string, string> = {
-  phone: "Voice integration shipping in v1.1",
-  browser: "Browser integration in progress",
-  email: "Email integration in progress",
-};
-
 // Merchants whose buttons are wired to real execute lanes.
-// Add a sub here and define its route to enable it on the dashboard.
 const WIRED_ROUTES: Record<string, string> = {
   sub_planet_fitness: "/execute/sub_planet_fitness",
   sub_nyt: "/execute?cases=sub_nyt",
   sub_la_fitness: "/execute?cases=sub_la_fitness",
 };
 
-export function SubscriptionRow({ sub }: { sub: Subscription }) {
-  const router = useRouter();
-  const [toast, setToast] = useState(false);
+function formatLastCharge(daysAgo: number): string {
+  if (daysAgo < 7) return `${daysAgo}d ago`;
+  if (daysAgo < 60) return `${Math.round(daysAgo / 7)}w ago`;
+  return `${Math.round(daysAgo / 30)}mo ago`;
+}
 
+const ACTION_LABELS: Record<string, string> = {
+  phone: "Approve & Call",
+  browser: "Approve & Run",
+  email: "Approve & Send",
+};
+
+interface SubscriptionRowProps {
+  sub: Subscription;
+  disabled?: boolean;
+}
+
+/**
+ * Subscription row — one per merchant.
+ * When wired: action button uses Next/Link so cmd+click + right-click follow
+ * browser-native behavior (open in new tab, copy link, etc.).
+ * When disabled: row renders muted, button is omitted (not replaced with
+ * a fake button — real products don't show non-functional affordances).
+ */
+export function SubscriptionRow({ sub, disabled = false }: SubscriptionRowProps) {
   const Icon = CHANNEL_ICONS[sub.channel] || Globe;
   const wiredRoute = WIRED_ROUTES[sub.id];
-
-  const handleAction = () => {
-    if (wiredRoute) {
-      router.push(wiredRoute);
-    } else {
-      setToast(true);
-      setTimeout(() => setToast(false), 2500);
-    }
-  };
-
-  const actionLabel =
-    sub.channel === "phone" ? "Approve & Call" : "Approve & Run";
+  const isWired = Boolean(wiredRoute) && !disabled;
+  const actionLabel = ACTION_LABELS[sub.channel] || "Approve";
 
   return (
-    <div className="flex items-center gap-4 px-4 py-3 border-b border-border last:border-b-0 group hover:bg-[var(--surface-elevated)] transition-colors">
-      {/* Channel icon */}
-      <div className="flex-shrink-0">
-        <Icon
-          size={18}
-          className={
-            sub.channel === "phone"
-              ? "text-foreground"
-              : "text-muted-foreground"
-          }
-        />
-      </div>
+    <div
+      className={`flex items-center gap-4 px-5 py-4 border-b border-border last:border-b-0 transition-colors duration-150 ${
+        disabled
+          ? "opacity-50 cursor-not-allowed"
+          : "hover:bg-[var(--surface-elevated)]"
+      }`}
+    >
+      <Icon size={16} className="flex-shrink-0 text-muted-foreground" />
 
-      {/* Info */}
       <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2">
-          <span className="text-[15px] font-semibold truncate">
-            {sub.merchant}
-          </span>
-        </div>
-        <div className="flex items-center gap-2 mt-0.5">
-          <span className="text-[13px] text-muted-foreground">
-            {sub.plan}
-          </span>
-          <span className="text-[13px] text-muted-foreground">&middot;</span>
-          <span className="text-[13px] text-muted-foreground">
-            ${sub.monthly_cost.toFixed(2)}/month
-          </span>
-        </div>
-        <div className="flex items-center gap-1.5 mt-1.5">
-          <span className="inline-flex items-center rounded px-1.5 py-0.5 text-[11px] font-mono bg-[var(--surface-elevated)] text-muted-foreground">
-            {DIFFICULTY_LABELS[sub.difficulty] || sub.difficulty}
-          </span>
-          {sub.difficulty === "phone_required" &&
-            sub.notes.includes("retention") && (
-              <span className="inline-flex items-center rounded px-1.5 py-0.5 text-[11px] font-mono bg-[var(--surface-elevated)] text-muted-foreground">
-                retention script
-              </span>
-            )}
-          {sub.notes.includes("aggressive") && (
-            <span className="inline-flex items-center rounded px-1.5 py-0.5 text-[11px] font-mono bg-amber-500/10 text-amber-500">
-              aggressive retention
-            </span>
-          )}
-        </div>
+        <p className="text-[16px] font-semibold truncate leading-tight">
+          {sub.merchant}
+        </p>
+        <p className="text-[13px] text-muted-foreground mt-1">
+          ${sub.monthly_cost.toFixed(2)}/mo · last charge {formatLastCharge(sub.last_used_days_ago)}
+        </p>
       </div>
 
-      {/* Amount + action */}
-      <div className="flex-shrink-0 flex items-center gap-4">
-        <div className="text-right">
-          <span className="text-[15px] font-semibold">
-            ${sub.annual_recoverable.toFixed(2)}
-          </span>
-          <span className="text-[13px] text-muted-foreground">/yr</span>
-        </div>
-
-        <div className="relative">
-          <button
-            onClick={handleAction}
-            className="px-3 py-1.5 rounded-md text-[13px] font-medium transition-colors bg-foreground text-background hover:opacity-90"
-          >
-            {actionLabel}
-          </button>
-
-          {toast && (
-            <div className="absolute right-0 top-full mt-2 w-56 rounded-md border border-border bg-[var(--surface)] px-3 py-2 text-[12px] text-muted-foreground z-50">
-              {DISABLED_COPY[sub.channel] || "Coming soon"}
-            </div>
-          )}
-        </div>
+      <div className="flex-shrink-0 text-right">
+        <p className="text-[20px] font-semibold tabular-nums leading-none">
+          ${sub.annual_recoverable.toFixed(2)}
+        </p>
+        <p className="text-[11px] text-muted-foreground mt-1">/year</p>
       </div>
+
+      {isWired && wiredRoute && (
+        <Link
+          href={wiredRoute}
+          className="flex-shrink-0 px-4 py-2 rounded-md text-[13px] font-medium bg-foreground text-background hover:opacity-90 transition-opacity"
+        >
+          {actionLabel}
+        </Link>
+      )}
     </div>
   );
 }

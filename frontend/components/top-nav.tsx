@@ -1,13 +1,15 @@
+import Link from "next/link";
+
 export function TopNav() {
   return (
-    <header className="border-b border-border px-6 py-3">
-      <div className="max-w-3xl mx-auto flex items-center justify-between">
-        <a href="/" className="text-[15px] font-semibold tracking-tight">
+    <header className="px-6 py-4">
+      <div className="max-w-6xl mx-auto">
+        <Link
+          href="/"
+          className="text-[15px] font-semibold tracking-tight hover:opacity-90 transition-opacity"
+        >
           refund hunter
-        </a>
-        <span className="text-xs text-muted-foreground font-mono">
-          demo mode &middot; v0.2
-        </span>
+        </Link>
       </div>
     </header>
   );

@@ -9,6 +9,7 @@ import {
   isRetrievalEvent,
   type RetrievalEvent,
 } from "@/lib/retrieval-sse";
+import type { LaneCompletion } from "@/lib/lane-completion";
 
 // Hardcoded case data — Planet Fitness is the only wired case for Tier 0
 const CASES: Record<
@@ -31,7 +32,12 @@ type CallStatus =
   | "completed"
   | "failed";
 
-export function CallPanel({ caseId }: { caseId: string }) {
+interface CallPanelProps {
+  caseId: string;
+  onComplete?: (completion: LaneCompletion) => void;
+}
+
+export function CallPanel({ caseId, onComplete }: CallPanelProps) {
   const caseData = CASES[caseId];
   const [status, setStatus] = useState<CallStatus>("idle");
   const [turns, setTurns] = useState<TranscriptTurn[]>([]);
@@ -56,32 +62,50 @@ export function CallPanel({ caseId }: { caseId: string }) {
     };
   }, []);
 
-  const finalizeFromCall = useCallback((call: Record<string, unknown>) => {
-    const transcripts = (call.transcripts as Array<Record<string, unknown>>) || [];
-    if (transcripts.length > 0) {
-      const builtTurns: TranscriptTurn[] = [];
-      for (const t of transcripts) {
-        if (t.response) {
-          builtTurns.push({ role: "agent", content: t.response as string });
+  const finalizeFromCall = useCallback(
+    (call: Record<string, unknown>) => {
+      const transcripts = (call.transcripts as Array<Record<string, unknown>>) || [];
+      if (transcripts.length > 0) {
+        const builtTurns: TranscriptTurn[] = [];
+        for (const t of transcripts) {
+          if (t.response) {
+            builtTurns.push({ role: "agent", content: t.response as string });
+          }
+          if (t.transcript) {
+            builtTurns.push({ role: "user", content: t.transcript as string });
+          }
         }
-        if (t.transcript) {
-          builtTurns.push({ role: "user", content: t.transcript as string });
-        }
+        setTurns(builtTurns);
       }
-      setTurns(builtTurns);
-    }
-    if (typeof call.durationSeconds === "number") {
-      setDuration(call.durationSeconds);
-    }
-    if (typeof call.confirmation_number === "string") {
-      setConfirmationNumber(call.confirmation_number);
-    }
-    setStatus("completed");
-    if (tickerRef.current) {
-      clearInterval(tickerRef.current);
-      tickerRef.current = null;
-    }
-  }, []);
+      const dur =
+        typeof call.durationSeconds === "number" ? call.durationSeconds : 0;
+      if (dur) setDuration(dur);
+      const conf =
+        typeof call.confirmation_number === "string"
+          ? call.confirmation_number
+          : null;
+      if (conf) setConfirmationNumber(conf);
+      setStatus("completed");
+      if (tickerRef.current) {
+        clearInterval(tickerRef.current);
+        tickerRef.current = null;
+      }
+      // Notify parent of terminal state
+      if (onComplete && caseData) {
+        onComplete({
+          caseId,
+          merchant: caseData.merchant,
+          channel: "voice",
+          status: "success",
+          durationSeconds: dur,
+          confirmationNumber: conf,
+          callId: (call.id as string) || undefined,
+          completedAt: new Date().toISOString(),
+        });
+      }
+    },
+    [caseId, caseData, onComplete]
+  );
 
   const pollOnce = useCallback(
     async (id: string) => {
@@ -187,41 +211,53 @@ export function CallPanel({ caseId }: { caseId: string }) {
   const isCompleted = status === "completed";
   const canStart = status === "idle" || status === "failed" || status === "completed";
 
+  const isIdleState = status === "idle";
+
   return (
     <div className="border border-border rounded-lg overflow-hidden flex flex-col">
-      {/* Header */}
-      <div className="px-4 py-3 border-b border-border flex items-center justify-between gap-2 bg-[var(--surface)]">
-        <div className="flex items-center gap-2 flex-wrap min-w-0">
-          <Phone size={16} className="text-muted-foreground flex-shrink-0" />
-          <span className="text-[14px] font-semibold truncate">{caseData.merchant}</span>
-          <StatusPill status={status} />
+      {/* Header — prose */}
+      <div className="px-5 py-3.5 border-b border-border flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2 min-w-0 flex-wrap">
+          <Phone size={14} className="text-muted-foreground flex-shrink-0" />
+          <span className="text-[14px] font-semibold truncate">
+            {caseData.merchant}
+          </span>
+          <span className="text-muted-foreground/40">·</span>
+          <span className="text-[12px] text-muted-foreground">
+            {statusLabel(status)}
+          </span>
           <MemoryChip merchantId="planet_fitness" />
         </div>
-        <span className="text-[11px] font-mono text-muted-foreground flex-shrink-0">
+        <span className="text-[11px] tabular-nums text-muted-foreground flex-shrink-0">
           {formatElapsed(elapsed)}
         </span>
       </div>
 
-      {/* Subtitle */}
-      <div className="px-4 py-2 border-b border-border bg-[var(--surface)] flex items-center justify-between">
-        <span className="text-[12px] text-muted-foreground">
-          {caseData.plan}
-        </span>
-        <span className="text-[12px] text-muted-foreground">
-          ${caseData.monthly_cost.toFixed(2)}/month
-        </span>
-      </div>
-
       {/* Content */}
-      <div className="px-4 py-4 space-y-4 flex-1">
+      <div className="px-5 py-5 space-y-4 flex-1">
         {error && <p className="text-[13px] text-destructive">{error}</p>}
+
+        {/* Pre-execution preview */}
+        {isIdleState && (
+          <div className="space-y-3">
+            <PreExecRow label="Will call">
+              Planet Fitness member services to request cancellation
+            </PreExecRow>
+            <PreExecRow label="Plan">
+              {caseData.plan} · ${caseData.monthly_cost.toFixed(2)}/month
+            </PreExecRow>
+            <PreExecRow label="Expected">
+              ~3m based on prior calls · retention offers handled inline
+            </PreExecRow>
+          </div>
+        )}
 
         {canStart && (
           <button
             onClick={handleStartCall}
             className="w-full py-2.5 rounded-md text-[14px] font-medium bg-foreground text-background hover:opacity-90 transition-opacity"
           >
-            {isCompleted ? "Call Again" : "Approve & Call"}
+            {isCompleted ? "Call again" : "Approve & call"}
           </button>
         )}
 
@@ -270,40 +306,32 @@ function formatElapsed(seconds: number): string {
   return `${m}m ${s.toString().padStart(2, "0")}s`;
 }
 
-function StatusPill({ status }: { status: CallStatus }) {
-  const config: Record<CallStatus, { label: string; className: string }> = {
-    idle: {
-      label: "ready",
-      className: "bg-[var(--surface-elevated)] text-muted-foreground",
-    },
-    starting: {
-      label: "starting",
-      className: "bg-amber-500/10 text-amber-500",
-    },
-    ringing: {
-      label: "ringing",
-      className: "bg-amber-500/10 text-amber-500 animate-pulse",
-    },
-    "in-progress": {
-      label: "in progress",
-      className: "bg-accent/10 text-accent animate-pulse",
-    },
-    completed: {
-      label: "completed",
-      className: "bg-accent/10 text-accent",
-    },
-    failed: {
-      label: "failed",
-      className: "bg-destructive/10 text-destructive",
-    },
-  };
+function statusLabel(status: CallStatus): string {
+  switch (status) {
+    case "idle":
+      return "Ready";
+    case "starting":
+      return "Connecting…";
+    case "ringing":
+      return "Ringing";
+    case "in-progress":
+      return "Live";
+    case "completed":
+      return "Confirmed";
+    case "failed":
+      return "Failed";
+  }
+}
 
-  const { label, className } = config[status];
+function PreExecRow({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <span
-      className={`inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-mono ${className}`}
-    >
-      {label}
-    </span>
+    <div className="flex items-baseline gap-3">
+      <span className="text-[11px] font-mono uppercase tracking-wider text-muted-foreground/70 w-20 flex-shrink-0">
+        {label}
+      </span>
+      <span className="text-[13px] text-foreground/90 leading-relaxed">
+        {children}
+      </span>
+    </div>
   );
 }

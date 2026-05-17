@@ -17,9 +17,9 @@ screen, retention objection handled, cancellation confirmed.
 - Tier 0: DONE — voice call, transcript SSE
 - Tier 1: DONE — Gmail OAuth, dashboard, curated subs
 - Tier 1.5: DONE — three-lane execute (voice/browser/email), real Browser Use for NYT
-- Tier 2a: NEXT — AgentMail replaces email lane mock
-- Tier 2b: NEXT — Supermemory for persistent merchant playbooks
-- Tier 2c: NEXT — Moss for in-call real-time retrieval (HIGHEST RISK)
+- Tier 2a: DONE — AgentMail replaces email lane mock
+- Tier 2b: DONE — Supermemory for persistent merchant playbooks
+- Tier 2c: DONE — Moss for in-call real-time retrieval (HIGHEST RISK)
 - Tier 3: After 2a/2b/2c — polish, audit log, pitch deck
 
 ## Current channel reality

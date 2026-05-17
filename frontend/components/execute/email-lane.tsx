@@ -24,6 +24,7 @@ import {
   type EmailMessage,
 } from "@/lib/email-sse";
 import { MemoryChip } from "./memory-chip";
+import type { LaneCompletion } from "@/lib/lane-completion";
 
 type LaneStatus =
   | "idle"
@@ -37,9 +38,10 @@ type LaneStatus =
 interface EmailLaneProps {
   caseId: string;
   merchantName: string;
+  onComplete?: (completion: LaneCompletion) => void;
 }
 
-export function EmailLane({ caseId, merchantName }: EmailLaneProps) {
+export function EmailLane({ caseId, merchantName, onComplete }: EmailLaneProps) {
   const [status, setStatus] = useState<LaneStatus>("idle");
   const [sentMessage, setSentMessage] = useState<EmailMessage | null>(null);
   const [receivedMessage, setReceivedMessage] = useState<EmailMessage | null>(null);
@@ -106,7 +108,7 @@ export function EmailLane({ caseId, merchantName }: EmailLaneProps) {
               setStatus("received");
               setPollingElapsed(null);
               break;
-            case "confirmed":
+            case "confirmed": {
               setConfirmationNumber(data.confirmation_number);
               setStatus("confirmed");
               if (tickerRef.current) {
@@ -114,15 +116,42 @@ export function EmailLane({ caseId, merchantName }: EmailLaneProps) {
                 tickerRef.current = null;
               }
               es.close();
+              const elapsedFinal = startedAtRef.current
+                ? Math.floor((Date.now() - startedAtRef.current) / 1000)
+                : 0;
+              onComplete?.({
+                caseId,
+                merchant: merchantName,
+                channel: "email",
+                status: "success",
+                durationSeconds: elapsedFinal,
+                confirmationNumber: data.confirmation_number,
+                threadId: thread.thread_id,
+                completedAt: new Date().toISOString(),
+              });
               break;
-            case "timeout":
+            }
+            case "timeout": {
               setStatus("timeout");
               if (tickerRef.current) {
                 clearInterval(tickerRef.current);
                 tickerRef.current = null;
               }
               es.close();
+              const elapsedFinal = startedAtRef.current
+                ? Math.floor((Date.now() - startedAtRef.current) / 1000)
+                : 0;
+              onComplete?.({
+                caseId,
+                merchant: merchantName,
+                channel: "email",
+                status: "timeout",
+                durationSeconds: elapsedFinal,
+                threadId: thread.thread_id,
+                completedAt: new Date().toISOString(),
+              });
               break;
+            }
             case "error":
               setError(data.message || "stream error");
               setStatus("error");
@@ -151,41 +180,53 @@ export function EmailLane({ caseId, merchantName }: EmailLaneProps) {
   const canStart = status === "idle" || status === "error" || isCompleted;
   const isWaiting = status === "sent";
 
+  const isIdle = status === "idle";
+
   return (
     <div className="border border-border rounded-lg overflow-hidden flex flex-col">
-      {/* Header */}
-      <div className="px-4 py-3 border-b border-border flex items-center justify-between gap-2 bg-[var(--surface)]">
-        <div className="flex items-center gap-2 flex-wrap min-w-0">
-          <Mail size={16} className="text-muted-foreground flex-shrink-0" />
-          <span className="text-[14px] font-semibold truncate">{merchantName}</span>
-          <StatusPill status={status} />
+      {/* Header — prose */}
+      <div className="px-5 py-3.5 border-b border-border flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2 min-w-0 flex-wrap">
+          <Mail size={14} className="text-muted-foreground flex-shrink-0" />
+          <span className="text-[14px] font-semibold truncate">
+            {merchantName}
+          </span>
+          <span className="text-muted-foreground/40">·</span>
+          <span className="text-[12px] text-muted-foreground">
+            {statusLabel(status)}
+          </span>
           <MemoryChip merchantId="la_fitness" />
         </div>
-        <span className="text-[11px] font-mono text-muted-foreground flex-shrink-0">
+        <span className="text-[11px] tabular-nums text-muted-foreground flex-shrink-0">
           {formatElapsed(elapsed)}
         </span>
       </div>
 
-      {/* Subtitle */}
-      <div className="px-4 py-2 border-b border-border bg-[var(--surface)] flex items-center justify-between">
-        <span className="text-[12px] text-muted-foreground">
-          Email cancellation lane
-        </span>
-        <span className="text-[12px] text-muted-foreground">
-          AgentMail · real send/receive
-        </span>
-      </div>
-
       {/* Content */}
-      <div className="px-4 py-4 space-y-3 flex-1">
+      <div className="px-5 py-5 space-y-3 flex-1">
         {error && <p className="text-[13px] text-destructive">{error}</p>}
+
+        {/* Pre-execution preview */}
+        {isIdle && (
+          <div className="space-y-3 pb-1">
+            <PreExecRow label="Will send">
+              templated cancellation request with member ID and policy citation
+            </PreExecRow>
+            <PreExecRow label="Then wait for">
+              auto-confirmation reply with cancellation number
+            </PreExecRow>
+            <PreExecRow label="Expected">
+              ~14s end-to-end · sub-15s for self-hosted merchant inbox
+            </PreExecRow>
+          </div>
+        )}
 
         {canStart && (
           <button
             onClick={handleStart}
             className="w-full py-2.5 rounded-md text-[14px] font-medium bg-foreground text-background hover:opacity-90 transition-opacity"
           >
-            {isCompleted ? "Run Again" : "Approve & Send"}
+            {isCompleted ? "Run again" : "Approve & send"}
           </button>
         )}
 
@@ -299,44 +340,35 @@ function MessageCard({
   );
 }
 
-function StatusPill({ status }: { status: LaneStatus }) {
-  const config: Record<LaneStatus, { label: string; className: string }> = {
-    idle: {
-      label: "ready",
-      className: "bg-[var(--surface-elevated)] text-muted-foreground",
-    },
-    sending: {
-      label: "sending",
-      className: "bg-amber-500/10 text-amber-500 animate-pulse",
-    },
-    sent: {
-      label: "awaiting reply",
-      className: "bg-amber-500/10 text-amber-500 animate-pulse",
-    },
-    received: {
-      label: "reply received",
-      className: "bg-accent/10 text-accent",
-    },
-    confirmed: {
-      label: "confirmed",
-      className: "bg-accent/10 text-accent",
-    },
-    timeout: {
-      label: "no reply",
-      className: "bg-amber-500/10 text-amber-500",
-    },
-    error: {
-      label: "error",
-      className: "bg-destructive/10 text-destructive",
-    },
-  };
-  const { label, className } = config[status];
+function statusLabel(status: LaneStatus): string {
+  switch (status) {
+    case "idle":
+      return "Ready";
+    case "sending":
+      return "Sending…";
+    case "sent":
+      return "Awaiting reply";
+    case "received":
+      return "Reply received";
+    case "confirmed":
+      return "Confirmed";
+    case "timeout":
+      return "No reply";
+    case "error":
+      return "Failed";
+  }
+}
+
+function PreExecRow({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <span
-      className={`inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-mono ${className}`}
-    >
-      {label}
-    </span>
+    <div className="flex items-baseline gap-3">
+      <span className="text-[11px] font-mono uppercase tracking-wider text-muted-foreground/70 w-24 flex-shrink-0">
+        {label}
+      </span>
+      <span className="text-[13px] text-foreground/90 leading-relaxed">
+        {children}
+      </span>
+    </div>
   );
 }
 

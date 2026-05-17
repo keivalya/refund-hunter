@@ -7,6 +7,7 @@ import {
   browserStreamUrl,
 } from "@/lib/browser-sse";
 import { MemoryChip } from "./memory-chip";
+import type { LaneCompletion } from "@/lib/lane-completion";
 
 interface BrowserStep {
   step_index: number;
@@ -27,12 +28,14 @@ interface BrowserLaneProps {
   caseId: string;
   merchantName: string;
   autoStart?: boolean;
+  onComplete?: (completion: LaneCompletion) => void;
 }
 
 export function BrowserLane({
   caseId,
   merchantName,
   autoStart = false,
+  onComplete,
 }: BrowserLaneProps) {
   const [status, setStatus] = useState<LaneStatus>("idle");
   const [liveUrl, setLiveUrl] = useState<string | null>(null);
@@ -92,6 +95,20 @@ export function BrowserLane({
               tickerRef.current = null;
             }
             es.close();
+            // Notify parent of terminal state
+            const elapsedFinal = startedAtRef.current
+              ? Math.floor((Date.now() - startedAtRef.current) / 1000)
+              : 0;
+            onComplete?.({
+              caseId,
+              merchant: merchantName,
+              channel: "browser",
+              status: "success",
+              durationSeconds: elapsedFinal,
+              sessionId: session.session_id,
+              output: data.output || undefined,
+              completedAt: new Date().toISOString(),
+            });
           }
         } catch {
           // Non-JSON heartbeat or unknown; ignore
@@ -128,77 +145,100 @@ export function BrowserLane({
       ? steps[steps.length - 1]
       : null;
 
+  const isIdle = status === "idle";
+  const showIframeArea = !isIdle && status !== "error";
+
   return (
     <div className="border border-border rounded-lg overflow-hidden flex flex-col h-full">
-      {/* Header */}
-      <div className="px-4 py-3 border-b border-border flex items-center justify-between gap-2 bg-[var(--surface)]">
-        <div className="flex items-center gap-2 flex-wrap min-w-0">
-          <Globe size={16} className="text-muted-foreground flex-shrink-0" />
-          <span className="text-[14px] font-semibold truncate">{merchantName}</span>
-          <StatusPill status={status} />
+      {/* Header — prose */}
+      <div className="px-5 py-3.5 border-b border-border flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2 min-w-0 flex-wrap">
+          <Globe size={14} className="text-muted-foreground flex-shrink-0" />
+          <span className="text-[14px] font-semibold truncate">
+            {merchantName}
+          </span>
+          <span className="text-muted-foreground/40">·</span>
+          <span className="text-[12px] text-muted-foreground">
+            {statusLabel(status)}
+          </span>
           <MemoryChip merchantId="nyt" />
         </div>
-        <span className="text-[11px] font-mono text-muted-foreground flex-shrink-0">
+        <span className="text-[11px] tabular-nums text-muted-foreground flex-shrink-0">
           {formatElapsed(elapsed)}
         </span>
       </div>
 
-      {/* Live view */}
-      <div className="relative bg-black" style={{ aspectRatio: "16/9" }}>
-        {liveUrl ? (
-          <iframe
-            src={liveUrl}
-            className="w-full h-full border-0"
-            allow="autoplay; clipboard-read; clipboard-write"
-            title="Browser Use live session"
-          />
-        ) : (
-          <div className="absolute inset-0 flex items-center justify-center text-muted-foreground text-[13px]">
-            {status === "idle" && "Ready"}
-            {status === "starting" && "Provisioning browser..."}
-            {status === "error" && "Failed to start"}
-          </div>
-        )}
-        {/* Step overlay strip */}
-        {currentStep && (
-          <div className="absolute bottom-0 left-0 right-0 px-3 py-2 bg-black/80 backdrop-blur text-[12px] font-mono text-foreground border-t border-border">
-            <span className="text-muted-foreground">
-              step {currentStep.step_index} · {currentStep.msg_type}:
-            </span>{" "}
-            {currentStep.summary.slice(0, 120)}
-            {currentStep.summary.length > 120 ? "…" : ""}
-          </div>
-        )}
-      </div>
+      {/* Live iframe view — only when running */}
+      {showIframeArea && (
+        <div className="relative bg-black" style={{ aspectRatio: "16/9" }}>
+          {liveUrl ? (
+            <iframe
+              src={liveUrl}
+              className="w-full h-full border-0"
+              allow="autoplay; clipboard-read; clipboard-write"
+              title="Browser Use live session"
+            />
+          ) : (
+            <div className="absolute inset-0 flex items-center justify-center text-muted-foreground text-[12px]">
+              {status === "starting" ? "Provisioning browser…" : ""}
+            </div>
+          )}
+          {currentStep && (
+            <div className="absolute bottom-0 left-0 right-0 px-3 py-2 bg-black/80 backdrop-blur text-[12px] text-foreground/90 border-t border-border">
+              <span className="text-muted-foreground">
+                step {currentStep.step_index}:
+              </span>{" "}
+              {currentStep.summary.slice(0, 140)}
+              {currentStep.summary.length > 140 ? "…" : ""}
+            </div>
+          )}
+        </div>
+      )}
 
-      {/* Step log + actions */}
+      {/* Content */}
       <div className="flex-1 flex flex-col">
         {error && (
-          <div className="px-4 py-2 text-[13px] text-destructive border-b border-border">
+          <div className="px-5 py-2.5 text-[13px] text-destructive border-b border-border">
             {error}
           </div>
         )}
 
+        {/* Pre-execution preview */}
+        {isIdle && (
+          <div className="px-5 py-5 space-y-3">
+            <PreExecRow label="Will navigate">
+              nytimes.com cancellation flow via real headless browser
+            </PreExecRow>
+            <PreExecRow label="Stops at">
+              chat handoff (non-destructive — no real cancellation)
+            </PreExecRow>
+            <PreExecRow label="Expected">
+              ~3m based on prior runs · live screen visible once started
+            </PreExecRow>
+          </div>
+        )}
+
         {canStart && !autoStart && (
-          <div className="px-4 py-3 border-b border-border">
+          <div className="px-5 py-4 border-t border-border">
             <button
               onClick={handleStart}
-              className="w-full py-2 rounded-md text-[14px] font-medium bg-foreground text-background hover:opacity-90"
+              className="w-full py-2.5 rounded-md text-[14px] font-medium bg-foreground text-background hover:opacity-90"
             >
-              {isCompleted ? "Run Again" : "Approve & Run"}
+              {isCompleted ? "Run again" : "Approve & run"}
             </button>
           </div>
         )}
 
         {steps.length > 0 && (
-          <div className="flex-1 overflow-y-auto px-4 py-3 space-y-1 text-[12px] font-mono max-h-[200px]">
+          <div className="flex-1 overflow-y-auto px-5 py-3 space-y-1 text-[12px] max-h-[200px] border-t border-border">
             {steps.map((s) => (
               <div
                 key={s.step_index}
                 className="text-muted-foreground leading-relaxed"
               >
-                <span className="text-foreground">[{s.step_index}]</span>{" "}
-                <span className="text-accent">{s.role}/{s.msg_type}</span>:{" "}
+                <span className="text-foreground/80 tabular-nums">
+                  {s.step_index.toString().padStart(2, " ")}
+                </span>{" "}
                 {s.summary.slice(0, 200)}
                 {s.summary.length > 200 ? "…" : ""}
               </div>
@@ -207,57 +247,46 @@ export function BrowserLane({
         )}
 
         {isCompleted && output && (
-          <div className="px-4 py-3 border-t border-border bg-accent/5">
-            <div className="text-[11px] font-mono text-accent uppercase tracking-wide mb-1">
-              ✓ Result
+          <div className="px-5 py-4 border-t border-border bg-accent/5">
+            <div className="text-[11px] font-mono uppercase tracking-wider text-accent mb-1.5">
+              Result
             </div>
-            <div className="text-[13px] leading-relaxed whitespace-pre-wrap">
+            <div className="text-[13px] leading-relaxed whitespace-pre-wrap text-foreground/90">
               {output.slice(0, 400)}
               {output.length > 400 ? "…" : ""}
             </div>
           </div>
         )}
-
-        {/* Honesty footer */}
-        <div className="px-4 py-2 border-t border-border text-[11px] text-muted-foreground bg-[var(--surface)]">
-          Real Browser Use session navigating nytimes.com. Stops at chat
-          handoff — does not complete cancellation.
-        </div>
       </div>
     </div>
   );
 }
 
-function StatusPill({ status }: { status: LaneStatus }) {
-  const config: Record<LaneStatus, { label: string; className: string }> = {
-    idle: {
-      label: "ready",
-      className: "bg-[var(--surface-elevated)] text-muted-foreground",
-    },
-    starting: {
-      label: "starting",
-      className: "bg-amber-500/10 text-amber-500",
-    },
-    running: {
-      label: "running",
-      className: "bg-accent/10 text-accent animate-pulse",
-    },
-    completed: {
-      label: "completed",
-      className: "bg-accent/10 text-accent",
-    },
-    error: {
-      label: "error",
-      className: "bg-destructive/10 text-destructive",
-    },
-  };
-  const { label, className } = config[status];
+function statusLabel(status: LaneStatus): string {
+  switch (status) {
+    case "idle":
+      return "Ready";
+    case "starting":
+      return "Starting…";
+    case "running":
+      return "Live";
+    case "completed":
+      return "Confirmed";
+    case "error":
+      return "Failed";
+  }
+}
+
+function PreExecRow({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <span
-      className={`inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-mono ${className}`}
-    >
-      {label}
-    </span>
+    <div className="flex items-baseline gap-3">
+      <span className="text-[11px] font-mono uppercase tracking-wider text-muted-foreground/70 w-24 flex-shrink-0">
+        {label}
+      </span>
+      <span className="text-[13px] text-foreground/90 leading-relaxed">
+        {children}
+      </span>
+    </div>
   );
 }
 

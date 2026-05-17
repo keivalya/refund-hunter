@@ -1,14 +1,13 @@
 "use client";
 
 /**
- * MemoryChip — small "memory-enriched · N prior calls" badge for lane headers.
+ * Memory metadata — prose inline element for lane headers.
  *
- * Subtle credibility detail: tells the viewer the system prompt was
- * dynamically enriched by Supermemory. Mounts on each lane (voice/browser/email).
+ * Renders as: "informed by 9 prior calls"
+ * Sans-serif, muted, no border, no icon. Pure metadata text.
  */
 
 import { useEffect, useState } from "react";
-import { Brain } from "lucide-react";
 import { getMerchantInsights } from "@/lib/insights";
 
 interface MemoryChipProps {
@@ -36,11 +35,10 @@ export function MemoryChip({ merchantId }: MemoryChipProps) {
 
   return (
     <span
-      className="inline-flex items-center gap-1 rounded border border-border bg-[var(--surface-elevated)] px-1.5 py-0.5 text-[10px] font-mono text-muted-foreground"
+      className="text-[12px] text-muted-foreground"
       title="System prompt enriched with patterns from prior calls via Supermemory."
     >
-      <Brain size={10} />
-      <span>memory · {count} prior</span>
+      informed by {count} prior {count === 1 ? "call" : "calls"}
     </span>
   );
 }
