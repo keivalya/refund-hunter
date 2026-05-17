@@ -5,6 +5,10 @@ import { Phone } from "lucide-react";
 import { TranscriptView, type TranscriptTurn } from "./transcript-view";
 import { MemoryChip } from "./execute/memory-chip";
 import { startCall, getCall, streamTranscriptUrl } from "@/lib/api";
+import {
+  isRetrievalEvent,
+  type RetrievalEvent,
+} from "@/lib/retrieval-sse";
 
 // Hardcoded case data — Planet Fitness is the only wired case for Tier 0
 const CASES: Record<
@@ -35,6 +39,10 @@ export function CallPanel({ caseId }: { caseId: string }) {
   const [confirmationNumber, setConfirmationNumber] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [elapsed, setElapsed] = useState<number>(0);
+  // Tier 2c: retrievals from Moss observation, keyed by user-turn index (1-based)
+  const [retrievals, setRetrievals] = useState<Map<number, RetrievalEvent>>(
+    new Map()
+  );
   const safetyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const eventSourceRef = useRef<EventSource | null>(null);
   const startedAtRef = useRef<number | null>(null);
@@ -97,6 +105,7 @@ export function CallPanel({ caseId }: { caseId: string }) {
     setTurns([]);
     setDuration(null);
     setConfirmationNumber(null);
+    setRetrievals(new Map());
     setStatus("starting");
     startedAtRef.current = Date.now();
     setElapsed(0);
@@ -122,6 +131,15 @@ export function CallPanel({ caseId }: { caseId: string }) {
         console.log("[call-panel] SSE event", event.data);
         try {
           const data = JSON.parse(event.data);
+          // Tier 2c: Moss retrieval events emitted alongside transcript turns
+          if (isRetrievalEvent(data)) {
+            setRetrievals((prev) => {
+              const next = new Map(prev);
+              next.set(data.turn_index, data);
+              return next;
+            });
+            return;
+          }
           if (data.role && data.content) {
             setTurns((prev) => [
               ...prev,
@@ -208,7 +226,11 @@ export function CallPanel({ caseId }: { caseId: string }) {
         )}
 
         {(isLive || isCompleted || turns.length > 0) && (
-          <TranscriptView turns={turns} isLive={isLive} />
+          <TranscriptView
+            turns={turns}
+            isLive={isLive}
+            retrievalsByUserTurn={retrievals}
+          />
         )}
       </div>
 

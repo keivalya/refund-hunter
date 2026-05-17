@@ -54,6 +54,10 @@ from agents.memory import (
     write_memory,
     extract_retention_from_transcript,
 )
+from agents.realtime_memory import (
+    ensure_index_for as moss_ensure_index_for,
+    query_for_turn as moss_query_for_turn,
+)
 from data.memory_seeds import ALL_SEEDS
 
 # Track call IDs we've already ingested into Supermemory (avoid duplicates
@@ -287,19 +291,84 @@ async def stream_call_transcript(call_id: str):
       - connected: call metadata
       - turn: {role, content, timestamp}
       - ended: {duration, status}
+
+    Tier 2c addition: on each rep (user) turn we ALSO query Moss and emit
+    a `type: retrieval` event into the same SSE stream. The Moss query
+    runs as a SEPARATE asyncio task so it never blocks the transcript
+    pass-through. Both the transcript pumper and Moss observers write to
+    a shared asyncio.Queue; the generator just drains the queue.
+
+    Any failure in the Moss branch is swallowed so the call always works.
     """
     async def event_generator():
+        # Ready-retrievals queue. Moss observer tasks push completed
+        # retrieval payloads here; we drain it between transcript yields.
+        retrieval_queue: asyncio.Queue = asyncio.Queue()
+        turn_index = 0
+
+        async def moss_observer(idx: int, utterance: str, created_at: str | None):
+            try:
+                retrieval = await moss_query_for_turn(
+                    "planet_fitness", utterance
+                )
+                if retrieval:
+                    payload = {
+                        "type": "retrieval",
+                        "turn_index": idx,
+                        "created_at": created_at,
+                        **retrieval,
+                    }
+                    await retrieval_queue.put(payload)
+            except Exception as e:
+                print(f"[moss] observer error: {e!r}", flush=True)
+
+        def drain_retrievals():
+            """Non-blocking: yield any ready Moss retrievals."""
+            results = []
+            while not retrieval_queue.empty():
+                try:
+                    results.append({"data": json.dumps(retrieval_queue.get_nowait())})
+                except asyncio.QueueEmpty:
+                    break
+            return results
+
         try:
             async for line in stream_transcript(call_id):
+                # Drain any ready retrievals BEFORE yielding the next event
+                # so chips render quickly even if Moss raced ahead.
+                for r in drain_retrievals():
+                    yield r
+
                 if line.startswith("data:"):
                     data = line[5:].strip()
+                    # ── Original pass-through — yield IMMEDIATELY ──
                     yield {"data": data}
+                    # ── Spawn Moss observer (fire-and-forget) ──
+                    try:
+                        parsed = json.loads(data)
+                        if parsed.get("role") == "user":
+                            rep_text = (parsed.get("content") or "").strip()
+                            if rep_text:
+                                turn_index += 1
+                                asyncio.create_task(
+                                    moss_observer(
+                                        turn_index,
+                                        rep_text,
+                                        parsed.get("createdAt"),
+                                    )
+                                )
+                    except Exception as parse_e:
+                        print(f"[moss] parse error: {parse_e!r}", flush=True)
                 elif line.startswith("event:"):
                     pass
                 else:
                     yield {"data": line}
         except Exception as e:
             yield {"event": "error", "data": json.dumps({"error": str(e)})}
+        finally:
+            # Final flush of any retrievals that completed during teardown
+            for r in drain_retrievals():
+                yield r
 
     return EventSourceResponse(event_generator())
 
@@ -354,6 +423,23 @@ async def seed_supermemory_on_startup():
         print(f"[startup] Supermemory seed: {result}", flush=True)
     except Exception as e:
         print(f"[startup] Supermemory seeding skipped: {e}", flush=True)
+
+
+@app.on_event("startup")
+async def warm_moss_on_startup():
+    """
+    Tier 2c: warm the Moss playbook index in the background. Cold load can
+    take 20-30s, so we fire-and-forget — uvicorn boots immediately, the
+    index becomes queryable a few seconds later. Calls placed before the
+    index is warm simply get no retrieval chips (graceful degrade).
+    """
+    async def _warm():
+        try:
+            result = await moss_ensure_index_for("planet_fitness")
+            print(f"[startup] Moss warmed: {result}", flush=True)
+        except Exception as e:
+            print(f"[startup] Moss warm failed: {e}", flush=True)
+    asyncio.create_task(_warm())
 
 
 @app.post("/api/browser/cleanup")

@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { RetrievalChip } from "./execute/retrieval-chip";
+import type { RetrievalEvent } from "@/lib/retrieval-sse";
 
 export interface TranscriptTurn {
   role: "agent" | "user";
@@ -11,9 +13,15 @@ export interface TranscriptTurn {
 interface TranscriptViewProps {
   turns: TranscriptTurn[];
   isLive: boolean;
+  /** Tier 2c: map of user-turn-index → retrieval event (1-indexed). */
+  retrievalsByUserTurn?: Map<number, RetrievalEvent>;
 }
 
-export function TranscriptView({ turns, isLive }: TranscriptViewProps) {
+export function TranscriptView({
+  turns,
+  isLive,
+  retrievalsByUserTurn,
+}: TranscriptViewProps) {
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -28,27 +36,39 @@ export function TranscriptView({ turns, isLive }: TranscriptViewProps) {
     );
   }
 
+  // Compute running user-turn index so we can match retrievals.
+  let userTurnSeen = 0;
+
   return (
     <div className="space-y-2 max-h-[500px] overflow-y-auto pr-2">
-      {turns.map((turn, i) => (
-        <div
-          key={i}
-          className={`rounded-md px-4 py-3 text-[14px] leading-relaxed border-l-2 ${
-            turn.role === "agent"
-              ? "border-l-accent bg-[var(--surface)]"
-              : "border-l-[var(--ring)] bg-[var(--surface)]"
-          }`}
-        >
-          <span
-            className={`text-[11px] font-mono uppercase tracking-wide ${
-              turn.role === "agent" ? "text-accent" : "text-muted-foreground"
-            }`}
-          >
-            {turn.role === "agent" ? "Agent" : "Rep"}
-          </span>
-          <p className="mt-1">{turn.content}</p>
-        </div>
-      ))}
+      {turns.map((turn, i) => {
+        let retrieval: RetrievalEvent | undefined;
+        if (turn.role === "user") {
+          userTurnSeen += 1;
+          retrieval = retrievalsByUserTurn?.get(userTurnSeen);
+        }
+        return (
+          <div key={i}>
+            <div
+              className={`rounded-md px-4 py-3 text-[14px] leading-relaxed border-l-2 ${
+                turn.role === "agent"
+                  ? "border-l-accent bg-[var(--surface)]"
+                  : "border-l-[var(--ring)] bg-[var(--surface)]"
+              }`}
+            >
+              <span
+                className={`text-[11px] font-mono uppercase tracking-wide ${
+                  turn.role === "agent" ? "text-accent" : "text-muted-foreground"
+                }`}
+              >
+                {turn.role === "agent" ? "Agent" : "Rep"}
+              </span>
+              <p className="mt-1">{turn.content}</p>
+            </div>
+            {retrieval && <RetrievalChip retrieval={retrieval} />}
+          </div>
+        );
+      })}
       {isLive && (
         <div className="flex items-center gap-2 text-[11px] text-muted-foreground py-2">
           <span className="relative flex h-2 w-2">
