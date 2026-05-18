@@ -275,20 +275,22 @@ def render_playbook_section(playbook: dict) -> str:
         for i, p in enumerate(patterns[:5], 1):
             lines.append(f"{i}. {p['label']} ({p['freq']} of {playbook['call_count']} calls)")
         lines.append("")
-        lines.append("Successful counter-strategies:")
-        lines.append("- Decline each offer politely and firmly")
-        lines.append("- Reiterate cancellation intent after each objection")
-        lines.append("- Ask for a confirmation number before ending the call")
+        lines.append("Counter-strategy (do this efficiently, do not loop):")
+        lines.append("- Decline each retention offer ONCE, politely. No extended negotiation.")
+        lines.append("- Ask ONCE for a confirmation number; accept email confirmation as sufficient.")
+        lines.append("- Close as soon as cancellation is acknowledged in any form.")
         lines.append("")
 
     avg_dur = playbook.get("avg_duration_seconds")
     if avg_dur:
         m, s = divmod(avg_dur, 60)
-        lines.append(f"Average call duration with this merchant: {m} minutes {s} seconds.")
+        lines.append(
+            f"Target call length: under {m} minutes. Prior calls averaged {m}m {s}s."
+        )
         lines.append("")
 
     lines.append(
-        "You are calling on behalf of an existing member. Stay polite but firm."
+        "You are calling on behalf of an existing member. Polite, firm, fast."
     )
     return "\n".join(lines)
 
