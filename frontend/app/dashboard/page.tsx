@@ -39,7 +39,7 @@ function DashboardContent() {
   const [totalRecoverable, setTotalRecoverable] = useState(0);
   const [loaded, setLoaded] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [showDisabled, setShowDisabled] = useState(false);
+  const [showDisabled, setShowDisabled] = useState(true);
 
   const fetchSubscriptions = useCallback(async () => {
     try {
